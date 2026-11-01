@@ -1,0 +1,106 @@
+##############################################################
+# ConfigMap: trapreceiver2-config
+# Application config for trapreceiveroct (trapreceiver2)
+##############################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trapreceiver2-config
+  namespace: trapreceiver2
+  labels:
+    app: trapreceiver2
+    component: config
+data:
+  config.yaml: |
+    # =============================================================
+    # TrapReceiveroct - Application Configuration (trapreceiver2)
+    # =============================================================
+
+    validation:
+      common_required:
+        - correlation_id
+      action_required:
+        create:
+          - externalAlarmId
+          - alarmRaisedTime
+        clear:
+          - recovery_event_id
+          - alarmClearedTime
+
+    type_action_map:
+      Alarm:      create
+      ClearAlarm: clear
+
+    kafka:
+      producer:
+        acks: "all"
+        retries: 3
+        linger_ms: 5
+        request_timeout_ms: 10000
+        max_block_ms: 10000
+      cloudevent_headers:
+        - id
+        - source
+        - type
+        - time
+        - specversion
+        - datacontenttype
+        - correlationid
+
+    severity_map:
+      "Disaster":       "critical"
+      "High":           "major"
+      "Average":        "minor"
+      "Warning":        "warning"
+      "Info":           "indeterminate"
+      "Not classified": "indeterminate"
+
+    alarm_defaults:
+      source_system_id:      "zabbix"
+      alarm_type:            "communicationsAlarm"
+      probable_cause:        "lossOfSignal"
+      alarmed_object_type:   "Interface"
+      state:                 "raised"
+      object_type:           "Alarm"
+      alarmed_obj_ref_type:  "AlarmedObjectRef"
+      alarmed_referred_type: "Host"
+      alarm_details_prefix:  "Operational data"
+
+    alarm_defaults_clear:
+      source_system_id:    "zabbix"
+      alarm_type:          "communicationsAlarm"
+      alarmed_object_type: "Interface"
+      state:               "cleared"
+      perceived_severity:  "cleared"
+      object_type:         "Alarm"
+
+    cloudevent:
+      spec_version:         "1.0"
+      data_content_type:    "application/json"
+      payload_category:     "asyncapi"
+      id_template:          "evt-{cid}-{action}"
+      source_template:      "/zabbix/{source_type}/{cid}"
+      type_template:        "org.tmforum.tmf642.alarm.{action}"
+      data_schema_template: "https://example.com/asyncapi/tmf642-alarm-{action}.json#/components/messages/{MessageName}"
+
+    asyncapi:
+      version:      "3.1.0"
+      info_version: "5.0.1"
+
+    # One topic per TMF642 action, registered via the trapreceivercomponent
+    # PublishedNotification pair (see
+    # trapreceivercomponent/k8s/05b-trapreceivercomponent-publishednotification-detected.yaml
+    # and 05c-...-clear.yaml). Retires the old shared legacy topics
+    # "oda.tmf642-refImpl-alarmCreateResource" and
+    # "oda.tmf642-refImpl-alarmClearResource".
+    action_map:
+      create:
+        message_name:    "AlarmCreate"
+        source_type:     "problem"
+        asyncapi_title:  "TMF642 Alarm Create"
+        channel_address: "oda.trapReceiver.event.alarmDetected"
+      clear:
+        message_name:    "AlarmClear"
+        source_type:     "recovery"
+        asyncapi_title:  "TMF642 Alarm Clear"
+        channel_address: "oda.trapReceiver.event.alarmCleared"

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trapreceiver2
+  labels:
+    app: trapreceiver2
+    version: "1.0.0"

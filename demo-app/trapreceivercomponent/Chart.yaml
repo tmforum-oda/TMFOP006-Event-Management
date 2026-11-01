@@ -1,0 +1,26 @@
+apiVersion: v2
+name: trapreceivercomponent
+description: >-
+  TrapReceiver ODA Component (publish-only). Receives Zabbix alarm/clear
+  traps over HTTP and republishes them as TMF642-style CloudEvents onto two
+  Kafka topics (one per action), registered as oda.tmforum.org
+  PublishedNotifications so the Event Management Operator provisions the
+  topics + producer ACLs.
+
+# A chart can be either an 'application' or a 'library' chart.
+type: application
+
+# Chart version -- bump this each time the chart/templates change.
+version: 1.2.0
+# version: 1.2.0 - reverted the create-side topic name from
+#                  alarmCreated back to alarmDetected (the original,
+#                  Zabbix-facing name); alarmCleared unchanged.
+# version: 1.1.0 - split the single consolidated alarmDetected topic back
+#                  into separate alarmCreated/alarmCleared topics, matching
+#                  the create/clear convention used elsewhere on this
+#                  cluster; added the public LoadBalancer Service for Zabbix.
+# version: 1.0.0 - baseline: Component CR (publish-only) + trapreceiveroct Deployment,
+#                  consolidated onto the oda.trapReceiver.event.alarmDetected topic.
+
+# Version of the trapreceiveroct application image this chart deploys.
+appVersion: "1.0.0"

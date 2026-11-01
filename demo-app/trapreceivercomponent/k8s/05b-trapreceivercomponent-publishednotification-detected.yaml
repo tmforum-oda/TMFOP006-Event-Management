@@ -1,0 +1,61 @@
+##############################################################################
+# trapreceivercomponent -- standalone PublishedNotification CR: AlarmDetected
+#
+# One of a detected/clear pair (see 05c for AlarmClear). Zabbix-facing topic
+# naming: "oda.trapReceiver.event.alarmDetected" (alarm raised) pairs with
+# "oda.trapReceiver.event.alarmCleared" (alarm cleared) -- this is the
+# original pair this component was built against, restored here after a
+# brief detour through an alarmCreated/alarmCleared naming that was tried
+# and then reverted in favor of this one.
+#
+# Built against the actual CRD studied for this change:
+#   https://github.com/tmforum-oda/oda-canvas/blob/main/charts/oda-crds/templates/oda-publishednotification-crd.yaml
+#   (group oda.tmforum.org, storage version v1)
+# Hand-authored the same way demo/crs/tmfc043-publishers.yaml hand-authors
+# its CRs: this is what the Event Management Operator
+# (operator/eventManagementOperator.py, `publishedNotification` handler)
+# actually watches and reconciles into a Kafka topic + producer ACLs -- it
+# does not watch Component resources directly. See
+# 05a-trapreceivercomponent-component-cr.yaml for the Component-level
+# equivalent, held back for now to avoid a duplicate topic (see its own
+# header comment for why).
+#
+# `spec.topic` is set explicitly so the topic name is the literal
+# "oda.trapReceiver.event.alarmDetected", rather than the operator's derived
+# "<prefix>.<component>.<event>" name (see operator/kafka_utils.py:topic_name
+# / _resolve_topic in eventManagementOperator.py -- explicit spec.topic
+# always wins). This object has been live and Active on your target cluster
+# since early in this component's rollout -- this file just restores its
+# source-of-truth representation in the repo.
+#
+# NOTE on apiType: confirmed directly against the live cluster --
+#   kubectl get crd publishednotifications.oda.tmforum.org -o yaml
+# on your target cluster shows `apiType: enum: [openapi]` on every served
+# version. `asyncapi` is NOT accepted and would be rejected by the API server
+# on `kubectl apply`. apiType is therefore `openapi` below -- a CRD
+# admission-time classifier only; it does not change what gets published to
+# Kafka.
+##############################################################################
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: trapreceivercomponent
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: trapreceivercomponent
+spec:
+  apiType: openapi
+  description: >-
+    Zabbix-sourced alarm raised event, republished as a TMF642 AlarmCreate
+    CloudEvent onto the trapReceiver topic.
+  name: alarmDetectedEvent
+  topic: oda.trapReceiver.event.alarmDetected
+  hub: /api/v1
+  implementation: trapreceiver2
+  developerUI: /api/v1/health
+  port: 8080
+  partitions: 1
+  replicationFactor: 3
+  specification:
+    - url: https://example.com/asyncapi/trapreceiver-alarmdetected.json
+      version: "1.0.0"

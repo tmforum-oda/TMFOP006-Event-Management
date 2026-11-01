@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-trapreceiveroct-config
+  labels:
+    app: {{ .Release.Name }}-trapreceiveroct
+    oda.tmforum.org/componentName: {{ .Release.Name }}-{{ .Values.component.name }}
+data:
+  config.yaml: |
+    # =============================================================
+    # TrapReceiveroct - Application Configuration
+    # =============================================================
+
+    validation:
+      common_required:
+        - correlation_id
+      action_required:
+        create:
+          - externalAlarmId
+          - alarmRaisedTime
+        clear:
+          - recovery_event_id
+          - alarmClearedTime
+
+    type_action_map:
+      Alarm:      create
+      ClearAlarm: clear
+
+    kafka:
+      producer:
+        acks: "all"
+        retries: 3
+        linger_ms: 5
+        request_timeout_ms: 10000
+        max_block_ms: 10000
+      cloudevent_headers:
+        - id
+        - source
+        - type
+        - time
+        - specversion
+        - datacontenttype
+        - correlationid
+
+    severity_map:
+{{- range $key, $value := .Values.alarm.severityMap }}
+      {{ $key | quote }}: {{ $value | quote }}
+{{- end }}
+
+    alarm_defaults:
+      source_system_id:      {{ .Values.alarm.sourceSystemId | quote }}
+      alarm_type:            "communicationsAlarm"
+      probable_cause:        "lossOfSignal"
+      alarmed_object_type:   "Interface"
+      state:                 "raised"
+      object_type:           "Alarm"
+      alarmed_obj_ref_type:  "AlarmedObjectRef"
+      alarmed_referred_type: "Host"
+      alarm_details_prefix:  "Operational data"
+
+    alarm_defaults_clear:
+      source_system_id:    {{ .Values.alarm.sourceSystemId | quote }}
+      alarm_type:          "communicationsAlarm"
+      alarmed_object_type: "Interface"
+      state:               "cleared"
+      perceived_severity:  "cleared"
+      object_type:         "Alarm"
+
+    cloudevent:
+      spec_version:         "1.0"
+      data_content_type:    "application/json"
+      payload_category:     "asyncapi"
+      id_template:          "evt-{cid}-{action}"
+      source_template:      "/zabbix/{source_type}/{cid}"
+      type_template:        "org.tmforum.tmf642.alarm.{action}"
+      data_schema_template: "{{ .Values.eventNotification.create.specificationUrl }}#/components/messages/{MessageName}"
+
+    asyncapi:
+      version:      "3.1.0"
+      info_version: "5.0.1"
+
+    # Separate topic per TMF642 action (matching the create/clear convention
+    # already used by tmf642-reflmpl and tmfc043-refimpl on this cluster) --
+    # registered via this chart's Component eventNotification.publishedEvents.
+    action_map:
+      create:
+        message_name:    "AlarmCreate"
+        source_type:     "problem"
+        asyncapi_title:  "TMF642 Alarm Create"
+        channel_address: {{ .Values.eventNotification.create.topic | quote }}
+      clear:
+        message_name:    "AlarmClear"
+        source_type:     "recovery"
+        asyncapi_title:  "TMF642 Alarm Clear"
+        channel_address: {{ .Values.eventNotification.clear.topic | quote }}

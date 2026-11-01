@@ -1,0 +1,57 @@
+apiVersion: oda.tmforum.org/v1
+kind: Component
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.component.name }}
+  labels:
+    oda.tmforum.org/componentName: {{ .Release.Name }}-{{ .Values.component.name }}
+spec:
+  componentMetadata:
+    id: {{ .Values.component.id }}
+    name: {{ .Values.component.name }}
+    functionalBlock: {{ .Values.component.functionalBlock }}
+    publicationDate: {{ .Values.component.publicationDate }}
+    status: specified
+    version: {{ .Values.component.version }}
+    description: >-
+      Publish-only ODA component for trapreceiveroct: receives Zabbix
+      alarm/clear traps over HTTP and republishes them as TMF642-style
+      CloudEvents onto a single Kafka topic. No exposedAPIs -- this
+      component exists only to register its published notification.
+    maintainers:
+      - name: TrapReceiver Team
+        email: not-applicable-trapreceiver
+    owners:
+      - name: TrapReceiver Team
+        email: not-applicable-trapreceiver
+  coreFunction:
+    exposedAPIs: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents:
+      - name: alarmDetectedEvent
+        description: >-
+          Zabbix-sourced alarm raised event, republished as a TMF642
+          AlarmCreate CloudEvent. Kafka topic:
+          {{ .Values.eventNotification.create.topic }}
+        specification:
+          - apiType: openapi
+            hub: /{{ .Release.Name }}-{{ .Values.component.name }}/api/v1
+            implementation: {{ .Release.Name }}-trapreceiveroct
+            developerUI: /{{ .Release.Name }}-{{ .Values.component.name }}/api/v1/health
+            port: {{ .Values.trapreceiveroct.port }}
+            url: {{ .Values.eventNotification.create.specificationUrl }}
+            version: "{{ .Values.eventNotification.create.specificationVersion }}"
+      - name: alarmClearEvent
+        description: >-
+          Zabbix-sourced alarm cleared event, republished as a TMF642
+          AlarmClear CloudEvent. Kafka topic:
+          {{ .Values.eventNotification.clear.topic }}
+        specification:
+          - apiType: openapi
+            hub: /{{ .Release.Name }}-{{ .Values.component.name }}/api/v1
+            implementation: {{ .Release.Name }}-trapreceiveroct
+            developerUI: /{{ .Release.Name }}-{{ .Values.component.name }}/api/v1/health
+            port: {{ .Values.trapreceiveroct.port }}
+            url: {{ .Values.eventNotification.clear.specificationUrl }}
+            version: "{{ .Values.eventNotification.clear.specificationVersion }}"
+    subscribedEvents: []

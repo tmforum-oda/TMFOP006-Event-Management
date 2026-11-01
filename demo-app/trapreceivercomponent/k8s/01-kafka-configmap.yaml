@@ -1,0 +1,24 @@
+##############################################################
+# ConfigMap: trapreceiver2-kafka-config
+# Kafka infrastructure env vars for trapreceiver2 namespace
+# Same Kafka broker as trapreceiver namespace (read-only, no impact)
+##############################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-config
+  namespace: trapreceiver2
+  labels:
+    app: trapreceiver2
+    component: kafka
+  annotations:
+    description: >
+      Non-secret Kafka infrastructure env vars for trapreceiver2.
+      Secret credentials (KAFKA_SASL_USERNAME, KAFKA_SASL_PASSWORD)
+      are in Secret: trapreceiver2-kafka-creds — NOT here.
+data:
+  KAFKA_BOOTSTRAP_SERVERS: "oda-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+  KAFKA_SASL_MECHANISM: "SCRAM-SHA-512"
+  KAFKA_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+  KAFKA_LIBS_PATH: "/kafka-libs"
+  KAFKA_PYTHON_VERSION: "2.0.2"
