@@ -3,7 +3,7 @@ Trap Receiver - Kafka Publisher
 NO hardcoded values.
 
 Config layers (12-factor / industry standard):
-  Infrastructure (bootstrap, libs path, security protocol, SASL mechanism)
+  Infrastructure (bootstrap, security protocol, SASL mechanism)
       -> env vars from kafka-config ConfigMap (envFrom)
   SASL Credentials (username, password)
       -> env vars from trap-receiver-kafka-creds Secret (envFrom)
@@ -15,23 +15,19 @@ Public API: publish(cloud_event, cfg) -> bool, never raises
 import json
 import logging
 import os
-import sys
 
 logger = logging.getLogger("TrapReceiver.KafkaPublisher")
 
 # ── Infra config from env vars (kafka-config ConfigMap -> Deployment envFrom) ──
+# No Python-literal defaults: app.py validates these are all set at startup
+# (fail fast) before any request can reach this module.
 _BOOTSTRAP         = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "")
-_KAFKA_LIBS        = os.environ.get("KAFKA_LIBS_PATH", "")
-_SECURITY_PROTOCOL = os.environ.get("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
+_SECURITY_PROTOCOL = os.environ.get("KAFKA_SECURITY_PROTOCOL", "")
 _SASL_MECHANISM    = os.environ.get("KAFKA_SASL_MECHANISM", "")
 
 # ── SASL Credentials from Secret (trap-receiver-kafka-creds -> Deployment envFrom) ──
 _SASL_USERNAME = os.environ.get("KAFKA_SASL_USERNAME", "")
 _SASL_PASSWORD = os.environ.get("KAFKA_SASL_PASSWORD", "")
-
-# Add kafka-python install dir to sys.path (init container populates this)
-if _KAFKA_LIBS and _KAFKA_LIBS not in sys.path:
-    sys.path.insert(0, _KAFKA_LIBS)
 
 _producer = None  # lazy singleton
 
@@ -92,12 +88,19 @@ def _get_producer(prod_cfg: dict):
         )
         return None
 
+    if not _SECURITY_PROTOCOL:
+        logger.error(
+            "  X KAFKA_SECURITY_PROTOCOL is not set -- "
+            "add kafka-config ConfigMap to Deployment envFrom"
+        )
+        return None
+
     try:
         from kafka import KafkaProducer
     except ImportError:
         logger.error(
-            "  X kafka-python not importable (KAFKA_LIBS_PATH=%r) -- "
-            "check install-kafka-python init container completed", _KAFKA_LIBS
+            "  X kafka-python not importable -- check it's in requirements.txt "
+            "and the image was rebuilt"
         )
         return None
 
@@ -111,18 +114,18 @@ def _get_producer(prod_cfg: dict):
             security_protocol=_SECURITY_PROTOCOL,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
             key_serializer=lambda k: k.encode("utf-8") if k else None,
-            acks=prod_cfg.get("acks", "all"),
-            retries=int(prod_cfg.get("retries", 3)),
-            linger_ms=int(prod_cfg.get("linger_ms", 5)),
-            request_timeout_ms=int(prod_cfg.get("request_timeout_ms", 10000)),
-            max_block_ms=int(prod_cfg.get("max_block_ms", 10000)),
+            acks=prod_cfg["acks"],
+            retries=int(prod_cfg["retries"]),
+            linger_ms=int(prod_cfg["linger_ms"]),
+            request_timeout_ms=int(prod_cfg["request_timeout_ms"]),
+            max_block_ms=int(prod_cfg["max_block_ms"]),
             **sasl_kwargs,    # empty dict for PLAINTEXT; SASL kwargs otherwise
         )
         logger.info(
             "  OK KafkaProducer ready  bootstrap=%s  protocol=%s  mechanism=%s  acks=%s",
             _BOOTSTRAP, _SECURITY_PROTOCOL,
             _SASL_MECHANISM if _SASL_MECHANISM else "none",
-            prod_cfg.get("acks", "all"),
+            prod_cfg["acks"],
         )
         return _producer
     except Exception as exc:
@@ -174,13 +177,10 @@ def publish(cloud_event: dict, cfg: dict) -> bool:
     Returns True on success, False on failure. Never raises.
     HTTP response is always returned to the caller regardless of Kafka state.
     """
-    kafka_cfg  = cfg.get("kafka", {})
-    prod_cfg   = kafka_cfg.get("producer", {})
-    action_map = cfg.get("action_map", {})
-    hdr_fields = kafka_cfg.get(
-        "cloudevent_headers",
-        ["id", "source", "type", "time", "specversion", "datacontenttype", "correlationid"],
-    )
+    kafka_cfg  = cfg["kafka"]
+    prod_cfg   = kafka_cfg["producer"]
+    action_map = cfg["action_map"]
+    hdr_fields = kafka_cfg["cloudevent_headers"]
 
     topic = _resolve_topic(cloud_event, action_map)
     if not topic:
@@ -193,7 +193,7 @@ def publish(cloud_event: dict, cfg: dict) -> bool:
 
     key     = cloud_event.get("correlationid", cloud_event.get("id", ""))
     headers = _build_headers(cloud_event, hdr_fields)
-    timeout = int(prod_cfg.get("request_timeout_ms", 10000)) / 1000
+    timeout = int(prod_cfg["request_timeout_ms"]) / 1000
 
     try:
         meta = producer.send(

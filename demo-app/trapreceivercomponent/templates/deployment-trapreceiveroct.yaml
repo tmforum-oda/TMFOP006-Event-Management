@@ -1,7 +1,8 @@
 ##############################################################################
 # Deployment + Services: trapreceiveroct
-# Implementation referenced by this chart's Component CR
-# (eventNotification.publishedEvents[0].specification[0].implementation).
+# The workload behind this chart's Component CR (which publishes no
+# eventNotification.publishedEvents of its own -- see
+# component-trapreceivercomponent.yaml for why).
 ##############################################################################
 apiVersion: apps/v1
 kind: Deployment
@@ -22,34 +23,24 @@ spec:
         app: {{ .Release.Name }}-trapreceiveroct
         version: {{ .Values.component.version | quote }}
     spec:
-      # -- Init container: install kafka-python into a shared volume -- #
-      initContainers:
-        - name: install-kafka-python
-          image: python:3.11-slim
-          command:
-            - sh
-            - -c
-            - |
-              pip install --quiet --target "${KAFKA_LIBS_PATH}" "kafka-python==${KAFKA_PYTHON_VERSION}"
-          envFrom:
-            - configMapRef:
-                name: {{ .Release.Name }}-trapreceiveroct-kafka-config
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 256Mi
-          volumeMounts:
-            - name: kafka-libs
-              mountPath: /kafka-libs
-
-      # -- Main container -- #
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # kafka-python ships inside the image (requirements.txt) -- no init
+      # container needed to install it at every pod start.
       containers:
         - name: trapreceiveroct
           image: {{ .Values.trapreceiveroct.image }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.trapreceiveroct.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: http
               containerPort: {{ .Values.trapreceiveroct.port }}
@@ -102,14 +93,16 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /app/config
-            - name: kafka-libs
-              mountPath: /kafka-libs
+            # readOnlyRootFilesystem needs a writable /tmp (gunicorn's
+            # worker heartbeat files, Python's own tempfile usage).
+            - name: tmp
+              mountPath: /tmp
 
       volumes:
         - name: config-volume
           configMap:
             name: {{ .Release.Name }}-trapreceiveroct-config
-        - name: kafka-libs
+        - name: tmp
           emptyDir: {}
 ---
 apiVersion: v1

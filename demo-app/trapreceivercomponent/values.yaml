@@ -7,31 +7,41 @@ component:
   name: trapreceivercomponent
   functionalBlock: Production
   publicationDate: 2026-10-30T00:00:00.000Z
-  version: "1.0.0"
+  version: "1.1.0"
 
-# -- The published notifications this component registers -- one topic per
-# TMF642 action, matching the detected/cleared naming Zabbix is configured
-# against. `topic` is what the Event Management Operator provisions on Kafka.
-# NOTE: the standard Component CRD's eventNotification.publishedEvents has no
-# `topic` override field (confirmed via `kubectl explain` against
-# your target cluster) -- the Component Operator derives its own topic name
-# from this Component CR. Until that derivation is confirmed to produce the
-# exact names below, the guaranteed-literal-name path is the standalone
-# PublishedNotification CRs this chart does NOT create (kept as
-# trapreceivercomponent/k8s/05b-*-detected.yaml and 05c-*-clear.yaml) --
-# see this chart's README for details.
+# -- The published notifications this component publishes to -- one topic
+# per TMF642 action, matching the detected/cleared naming Zabbix is
+# configured against. These values feed the app's own config (channel_address
+# in templates/configmap-trapreceiveroct.yaml) -- they are NOT registered via
+# this chart's Component resource. The installed Component CRD's
+# eventNotification.publishedEvents has no `topic` override field, so the
+# Component Operator would derive its own (release-prefixed) topic name
+# instead of these literal ones -- confirmed in practice, not just in theory
+# (see README "Topic-name caveat"). This chart's Component therefore
+# deliberately declares publishedEvents as empty; the standalone
+# PublishedNotification CRs (trapreceivercomponent/k8s/05b-*-detected.yaml
+# and 05c-*-clear.yaml), which do set an explicit topic, are the single
+# source of truth for topic registration -- apply those directly.
 eventNotification:
+  # specificationUrl points at the real AsyncAPI 3.1.0 documents in this
+  # folder's asyncapi/ -- publicly reachable once this is pushed as part of
+  # the TM Forum PR (demo-app/trapreceivercomponent/asyncapi/). Override if
+  # you install this from a different fork/location.
   create:
     topic: oda.trapReceiver.event.alarmDetected
-    specificationUrl: https://example.com/asyncapi/trapreceiver-alarmdetected.json
+    specificationUrl: https://raw.githubusercontent.com/tmforum-oda/TMFOP006-Event-Management/main/demo-app/trapreceivercomponent/asyncapi/trapreceiver-alarmdetected.json
     specificationVersion: "1.0.0"
   clear:
     topic: oda.trapReceiver.event.alarmCleared
-    specificationUrl: https://example.com/asyncapi/trapreceiver-alarmcleared.json
+    specificationUrl: https://raw.githubusercontent.com/tmforum-oda/TMFOP006-Event-Management/main/demo-app/trapreceivercomponent/asyncapi/trapreceiver-alarmcleared.json
     specificationVersion: "1.0.0"
 
 trapreceiveroct:
-  image: jiotmraj/trapreceivercomponent:1.0.0
+  image: jiotmraj/trapreceivercomponent:1.1.0
+  # IfNotPresent, not Always: the tag above is an immutable version tag
+  # (never overwritten once pushed -- see Dockerfile/CI), so there is no
+  # reason to re-pull it on every pod restart.
+  imagePullPolicy: IfNotPresent
   port: 8080
   replicas: 1
   # Public endpoint for Zabbix to POST alarms to. Cloud-agnostic: creates a
@@ -59,21 +69,21 @@ kafka:
   bootstrapServers: oda-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
   saslMechanism: SCRAM-SHA-512
   securityProtocol: SASL_PLAINTEXT
-  libsPath: /kafka-libs
-  pythonVersion: "2.0.2"
   # Name of a pre-existing Secret (same namespace) with keys
   # KAFKA_SASL_USERNAME / KAFKA_SASL_PASSWORD. Not created by this chart.
-  existingSecretName: trapreceiver2-kafka-creds
+  existingSecretName: trapreceivercomponent-kafka-creds
 
 # -- HTTP API auth (non-Kafka) --
 auth:
   # Name of a pre-existing Secret (same namespace) with keys
   # TRAP_API_KEY / DASHBOARD_API_KEY. Not created by this chart.
-  existingSecretName: trapreceiver2-auth
+  existingSecretName: trapreceivercomponent-auth
 
 # -- Published-event payload shaping (Zabbix -> TMF642 CloudEvent) --
+# sourceSystemId is no longer defaulted here -- it's a required TMF642 field
+# the sender (Zabbix) must supply directly in the payload, not something
+# this component should invent on its behalf.
 alarm:
-  sourceSystemId: zabbix
   severityMap:
     Disaster: critical
     High: major

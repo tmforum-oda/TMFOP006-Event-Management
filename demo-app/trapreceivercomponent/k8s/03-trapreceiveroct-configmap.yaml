@@ -1,21 +1,27 @@
 ##############################################################
-# ConfigMap: trapreceiver2-config
-# Application config for trapreceiveroct (trapreceiver2)
+# ConfigMap: trapreceivercomponent-config
+# Application config for trapreceiveroct, for standalone `kubectl apply`
+# and docker-compose use (see docker-compose.yml). The literal values here
+# must stay in sync with templates/configmap-trapreceiveroct.yaml -- that
+# file is the Helm-templated version of this exact same config.
 ##############################################################
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: trapreceiver2-config
-  namespace: trapreceiver2
+  name: trapreceivercomponent-config
+  namespace: components
   labels:
-    app: trapreceiver2
+    app: trapreceivercomponent
     component: config
 data:
   config.yaml: |
     # =============================================================
-    # TrapReceiveroct - Application Configuration (trapreceiver2)
+    # TrapReceiveroct - Application Configuration (trapreceivercomponent)
     # =============================================================
 
+    # TMF642-required fields are REQUIRED here, not defaulted in code --
+    # app.py returns 400 if the sender omits any of these, instead of the
+    # app inventing a value (see trap_receiver/transformer.py).
     validation:
       common_required:
         - correlation_id
@@ -23,9 +29,19 @@ data:
         create:
           - externalAlarmId
           - alarmRaisedTime
+          - alarmType
+          - probableCause
+          - alarmedObjectType
+          - alarmedObject
+          - sourceSystemId
+          - state
+          - severity
         clear:
           - recovery_event_id
           - alarmClearedTime
+          - alarmPattern
+          - clearSystemId
+          - clearUserId
 
     type_action_map:
       Alarm:      create
@@ -47,6 +63,9 @@ data:
         - datacontenttype
         - correlationid
 
+    # Zabbix's own severity vocabulary -> TMF642 perceivedSeverity. The
+    # payload must set `severity` to one of these keys (validated in app.py);
+    # the mapped value becomes perceivedSeverity -- never hardcoded.
     severity_map:
       "Disaster":       "critical"
       "High":           "major"
@@ -55,24 +74,14 @@ data:
       "Info":           "indeterminate"
       "Not classified": "indeterminate"
 
+    # Only structural/formatting defaults -- no TMF642 alarm data is
+    # invented here. object_type backs the @type discriminator only if a
+    # caller somehow omits @type (real traffic always has it, since it's
+    # how the action itself is inferred). alarm_details_prefix only affects
+    # formatting of a detail string the payload already provided.
     alarm_defaults:
-      source_system_id:      "zabbix"
-      alarm_type:            "communicationsAlarm"
-      probable_cause:        "lossOfSignal"
-      alarmed_object_type:   "Interface"
-      state:                 "raised"
-      object_type:           "Alarm"
-      alarmed_obj_ref_type:  "AlarmedObjectRef"
-      alarmed_referred_type: "Host"
-      alarm_details_prefix:  "Operational data"
-
-    alarm_defaults_clear:
-      source_system_id:    "zabbix"
-      alarm_type:          "communicationsAlarm"
-      alarmed_object_type: "Interface"
-      state:               "cleared"
-      perceived_severity:  "cleared"
-      object_type:         "Alarm"
+      object_type:          "Alarm"
+      alarm_details_prefix: "Operational data"
 
     cloudevent:
       spec_version:         "1.0"
@@ -81,26 +90,45 @@ data:
       id_template:          "evt-{cid}-{action}"
       source_template:      "/zabbix/{source_type}/{cid}"
       type_template:        "org.tmforum.tmf642.alarm.{action}"
-      data_schema_template: "https://example.com/asyncapi/tmf642-alarm-{action}.json#/components/messages/{MessageName}"
+      data_schema_template: "https://raw.githubusercontent.com/tmforum-oda/TMFOP006-Event-Management/main/demo-app/trapreceivercomponent/asyncapi/trapreceiver-alarmdetected.json#/components/messages/{MessageName}"
 
     asyncapi:
       version:      "3.1.0"
       info_version: "5.0.1"
 
     # One topic per TMF642 action, registered via the trapreceivercomponent
-    # PublishedNotification pair (see
-    # trapreceivercomponent/k8s/05b-trapreceivercomponent-publishednotification-detected.yaml
-    # and 05c-...-clear.yaml). Retires the old shared legacy topics
+    # standalone PublishedNotification pair (see
+    # trapreceivercomponent/k8s/05b-*-detected.yaml and 05c-*-clear.yaml).
+    # Retires the old shared legacy topics
     # "oda.tmf642-refImpl-alarmCreateResource" and
     # "oda.tmf642-refImpl-alarmClearResource".
     action_map:
       create:
         message_name:    "AlarmCreate"
+        channel_name:    "alarmCreate"
+        operation_name:  "createAlarm"
         source_type:     "problem"
         asyncapi_title:  "TMF642 Alarm Create"
         channel_address: "oda.trapReceiver.event.alarmDetected"
       clear:
         message_name:    "AlarmClear"
+        channel_name:    "alarmClear"
+        operation_name:  "clearAlarm"
         source_type:     "recovery"
         asyncapi_title:  "TMF642 Alarm Clear"
         channel_address: "oda.trapReceiver.event.alarmCleared"
+
+    # Which HTTP paths need which API key -- auth.py reads this instead of
+    # hardcoding route sets. /dashboard itself is open (its own JS supplies
+    # a key when it calls the two JSON endpoints below).
+    auth:
+      trap_paths:
+        - /api/v1/trap
+        - /api/v1/trap/alarm
+        - /api/v1/trap/clear
+      dashboard_paths:
+        - /api/v1/events
+        - /api/v1/events/summary
+      open_paths:
+        - /api/v1/health
+        - /dashboard

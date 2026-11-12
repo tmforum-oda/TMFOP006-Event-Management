@@ -26,5 +26,5 @@ spec:
   partitions: 1
   replicationFactor: 3
   specification:
-    - url: https://example.com/asyncapi/trapreceiver-alarmcleared.json
+    - url: https://raw.githubusercontent.com/tmforum-oda/TMFOP006-Event-Management/main/demo-app/trapreceivercomponent/asyncapi/trapreceiver-alarmcleared.json
       version: "1.0.0"

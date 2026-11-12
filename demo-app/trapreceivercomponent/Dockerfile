@@ -6,10 +6,10 @@
 # Fully self-contained -- build context is THIS folder:
 #
 #   cd demo-app/trapreceivercomponent
-#   docker build -t trapreceivercomponent:1.0.0 .
+#   docker build -t trapreceivercomponent:1.1.0 .
 #
 # Or skip building entirely and use the public pre-built image:
-#   jiotmraj/trapreceivercomponent:1.0.0 (linux/amd64 + linux/arm64)
+#   jiotmraj/trapreceivercomponent:1.1.0 (linux/amd64 + linux/arm64)
 #
 # Easiest way to actually run it (Kafka + app together, no Kubernetes
 # needed): see docker-compose.yml in this same folder.
@@ -19,13 +19,18 @@ FROM python:3.11-slim
 
 # ── Metadata ──────────────────────────────────────────────────────────────────
 LABEL maintainer="TM Forum Reference Implementation" \
-      version="1.0.0" \
+      version="1.1.0" \
       description="trapreceivercomponent — ODA Canvas Kafka CloudEvent Pipeline (TMF642)" \
       org.opencontainers.image.title="trapreceivercomponent" \
-      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.version="1.1.0" \
       org.opencontainers.image.source="https://github.com/tmforum-oda/TMFOP006-Event-Management"
 
 # ── Non-root user (security best practice) ────────────────────────────────────
+# Keep the named user for image-build readability (chown, HEALTHCHECK run as
+# this user), but the Deployment's securityContext/USER below both reference
+# the numeric UID: Kubernetes' runAsNonRoot check reads the image config's
+# User field, and a named user there isn't reliably resolved to a UID by
+# every container runtime -- `USER 10001` (numeric) avoids that ambiguity.
 RUN useradd --uid 10001 --create-home --shell /bin/bash trapreceiver
 
 WORKDIR /app
@@ -44,8 +49,8 @@ COPY VERSION ./VERSION
 RUN mkdir -p /app/config && \
     chown -R trapreceiver:trapreceiver /app
 
-# ── Switch to non-root user ───────────────────────────────────────────────────
-USER trapreceiver
+# ── Switch to non-root user (numeric UID, see comment above) ──────────────────
+USER 10001
 
 # ── Expose port ───────────────────────────────────────────────────────────────
 EXPOSE 8080
@@ -63,4 +68,10 @@ ENV PORT=8080 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-CMD ["python3", "-m", "trap_receiver.app"]
+# gunicorn, not Flask's own dev server (not meant for production use).
+# 2 workers: enough for this app's request volume without over-provisioning;
+# bump via --workers if traffic grows. app:main's create_app() factory is
+# called through a small WSGI shim (trap_receiver.wsgi) since gunicorn needs
+# a module-level app object, not a main() that calls app.run() itself.
+CMD ["gunicorn", "--bind=0.0.0.0:8080", "--workers=2", "--access-logfile=-", \
+     "--error-logfile=-", "trap_receiver.wsgi:app"]

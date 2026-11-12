@@ -14,5 +14,3 @@ data:
   KAFKA_BOOTSTRAP_SERVERS: {{ .Values.kafka.bootstrapServers | quote }}
   KAFKA_SASL_MECHANISM: {{ .Values.kafka.saslMechanism | quote }}
   KAFKA_SECURITY_PROTOCOL: {{ .Values.kafka.securityProtocol | quote }}
-  KAFKA_LIBS_PATH: {{ .Values.kafka.libsPath | quote }}
-  KAFKA_PYTHON_VERSION: {{ .Values.kafka.pythonVersion | quote }}

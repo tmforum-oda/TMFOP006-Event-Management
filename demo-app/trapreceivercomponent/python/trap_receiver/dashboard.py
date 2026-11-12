@@ -65,7 +65,7 @@ _B = (
     "<body>"
     '<div class="header">'
     '<div><h1><span class="live-dot"></span> Trap Receiver &#8212; Alarm Dashboard</h1>'
-    '<div class="sub">AWS EKS &#183; ap-south-1 &#183; ihpp-canvas-dev-01 &#183; trapreceiver</div></div>'
+    '<div class="sub">Live alarm event feed</div></div>'
     '<button class="btn" onclick="loadData()">&#x21BA; Refresh</button>'
     "</div>"
     '<div class="cards">'
@@ -99,37 +99,49 @@ _B = (
     '<div class="footer" id="ts"></div>'
     "<script>"
     "let A=[];"
+    "function esc(s){"
+    "return String(s??'&#8212;').replace(/[&<>\"']/g,c=>({"
+    "'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'"
+    "}[c]));}"
+    "function apiKey(){"
+    "let k=null;try{k=localStorage.getItem('dashboardApiKey');}catch(e){}"
+    "if(!k){k=prompt('Dashboard API key (X-API-Key):')||'';"
+    "try{localStorage.setItem('dashboardApiKey',k);}catch(e){}}"
+    "return k;}"
+    "function authHeaders(){return {'X-API-Key':apiKey()};}"
     "async function loadData(){"
     "const lim=document.getElementById('f-limit').value;"
-    "try{const s=await fetch('/api/v1/events/summary').then(r=>r.json());"
+    "try{const r=await fetch('/api/v1/events/summary',{headers:authHeaders()});"
+    "if(r.status===401){try{localStorage.removeItem('dashboardApiKey');}catch(e){}}"
+    "const s=await r.json();"
     "document.getElementById('c-total').textContent=s.total??0;"
     "document.getElementById('c-create').textContent=s.counters?.create??0;"
     "document.getElementById('c-clear').textContent=s.counters?.clear??0;"
     "document.getElementById('c-last').textContent=s.last_event?new Date(s.last_event).toLocaleString():'&#8212;';"
     "}catch(e){}"
-    "try{A=await fetch('/api/v1/events?limit='+lim).then(r=>r.json());applyFilter();}catch(e){}"
+    "try{A=await fetch('/api/v1/events?limit='+lim,{headers:authHeaders()}).then(r=>r.json());applyFilter();}catch(e){}"
     "document.getElementById('ts').textContent='Last refreshed: '+new Date().toLocaleString();}"
     "function applyFilter(){"
     "const act=document.getElementById('f-action').value;"
     "const cid=document.getElementById('f-cid').value.trim().toLowerCase();"
-    "let rows=A;"
+    "let rows=Array.isArray(A)?A:[];"
     "if(act) rows=rows.filter(e=>e.action===act);"
     "if(cid) rows=rows.filter(e=>(e.correlation_id||'').toLowerCase().includes(cid));"
     "const tb=document.getElementById('tb');"
     "if(!rows.length){tb.innerHTML='<tr><td colspan=\"11\" class=\"empty\">No events found.</td></tr>';return;}"
     "tb.innerHTML=rows.map((e,i)=>"
     "'<tr>'"
-    "+'<td class=\"mono\">'+(i+1)+'</td>'"
-    "+'<td class=\"mono\">'+(e.received_at||'').replace('T',' ').replace('Z',' UTC')+'</td>'"
-    "+'<td><span class=\"badge '+e.action+'\">'+e.action+'</span></td>'"
-    "+'<td class=\"mono\">'+(e.correlation_id||'&#8212;')+'</td>'"
-    "+'<td class=\"mono\">'+(e.event_id||'&#8212;')+'</td>'"
-    "+'<td>'+(e.host||'&#8212;')+'</td>'"
-    "+'<td>'+(e.severity||'&#8212;')+'</td>'"
-    "+'<td>'+(e.problem||'&#8212;')+'</td>'"
-    "+'<td>'+(e.state||'&#8212;')+'</td>'"
-    "+'<td class=\"mono\">'+(e.recovery_event_id||'&#8212;')+'</td>'"
-    "+'<td>'+(e.conversation_name||'&#8212;')+'</td>'"
+    "+'<td class=\"mono\">'+esc(i+1)+'</td>'"
+    "+'<td class=\"mono\">'+esc((e.received_at||'').replace('T',' ').replace('Z',' UTC'))+'</td>'"
+    "+'<td><span class=\"badge '+esc(e.action)+'\">'+esc(e.action)+'</span></td>'"
+    "+'<td class=\"mono\">'+esc(e.correlation_id)+'</td>'"
+    "+'<td class=\"mono\">'+esc(e.event_id)+'</td>'"
+    "+'<td>'+esc(e.host)+'</td>'"
+    "+'<td>'+esc(e.severity)+'</td>'"
+    "+'<td>'+esc(e.problem)+'</td>'"
+    "+'<td>'+esc(e.state)+'</td>'"
+    "+'<td class=\"mono\">'+esc(e.recovery_event_id)+'</td>'"
+    "+'<td>'+esc(e.conversation_name)+'</td>'"
     "+'</tr>'"
     ").join('');}"
     "loadData();setInterval(loadData,30000);"
@@ -146,8 +158,15 @@ def dashboard():
 
 @dashboard_bp.route("/api/v1/events", methods=["GET"])
 def get_events():
-    action = request.args.get("action", "").strip().lower() or None
-    limit  = min(int(request.args.get("limit", 100)), 500)
+    action    = request.args.get("action", "").strip().lower() or None
+    raw_limit = request.args.get("limit", "100")
+    try:
+        limit = min(int(raw_limit), 500)
+    except (TypeError, ValueError):
+        return jsonify({
+            "error": "invalid_query_param", "param": "limit",
+            "message": "limit must be an integer",
+        }), 400
     return jsonify(store.get_events(action=action, limit=limit)), 200
 
 

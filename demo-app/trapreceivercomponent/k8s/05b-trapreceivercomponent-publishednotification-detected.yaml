@@ -15,20 +15,24 @@
 # its CRs: this is what the Event Management Operator
 # (operator/eventManagementOperator.py, `publishedNotification` handler)
 # actually watches and reconciles into a Kafka topic + producer ACLs -- it
-# does not watch Component resources directly. See
-# 05a-trapreceivercomponent-component-cr.yaml for the Component-level
-# equivalent, held back for now to avoid a duplicate topic (see its own
-# header comment for why).
+# does not watch Component resources directly. This is the single source of
+# truth for topic registration: this chart's Component CR deliberately
+# declares eventNotification.publishedEvents as empty (see
+# templates/component-trapreceivercomponent.yaml) so the Component Operator
+# doesn't auto-create a second, differently-named PublishedNotification for
+# the same event -- confirmed this actually happens, not just in theory
+# (see README "Topic-name caveat").
 #
 # `spec.topic` is set explicitly so the topic name is the literal
 # "oda.trapReceiver.event.alarmDetected", rather than the operator's derived
 # "<prefix>.<component>.<event>" name (see operator/kafka_utils.py:topic_name
 # / _resolve_topic in eventManagementOperator.py -- explicit spec.topic
-# always wins). This object has been live and Active on your target cluster
-# since early in this component's rollout -- this file just restores its
-# source-of-truth representation in the repo.
+# always wins). This object has been live and Active on the cluster this
+# reference implementation was built against, since early in this
+# component's rollout -- this file just restores its source-of-truth
+# representation in the repo.
 #
-# NOTE on apiType: confirmed directly against the live cluster --
+# NOTE on apiType: confirmed directly against a live cluster --
 #   kubectl get crd publishednotifications.oda.tmforum.org -o yaml
 # on your target cluster shows `apiType: enum: [openapi]` on every served
 # version. `asyncapi` is NOT accepted and would be rejected by the API server
@@ -57,5 +61,5 @@ spec:
   partitions: 1
   replicationFactor: 3
   specification:
-    - url: https://example.com/asyncapi/trapreceiver-alarmdetected.json
+    - url: https://raw.githubusercontent.com/tmforum-oda/TMFOP006-Event-Management/main/demo-app/trapreceivercomponent/asyncapi/trapreceiver-alarmdetected.json
       version: "1.0.0"
