@@ -1,0 +1,37 @@
+{{- if .Values.trapreceiveroct.externalAccess.enabled }}
+##############################################################################
+# Service: {{ .Release.Name }}-trapreceiveroct-ext-svc (LoadBalancer)
+# Public endpoint for Zabbix to POST alarms to. Cloud-agnostic by default:
+# whichever Kubernetes cluster this is installed on provisions its own
+# load balancer (an AWS ELB on EKS, a GCP Load Balancer on GKE, an Azure LB
+# on AKS) -- nothing reaches back to any other cluster or cloud account.
+#
+# On a cluster with no cloud load-balancer controller (a local kind /
+# minikube cluster, for example) this Service stays in <pending> state
+# instead of getting an external address -- use
+# `kubectl port-forward svc/{{ .Release.Name }}-trapreceiveroct-ext-svc 8080:{{ .Values.trapreceiveroct.port }}`
+# there instead, or disable this Service entirely with
+# `--set trapreceiveroct.externalAccess.enabled=false` and reach the app via
+# its ClusterIP Service / port-forward.
+##############################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-trapreceiveroct-ext-svc
+  labels:
+    app: {{ .Release.Name }}-trapreceiveroct
+    oda.tmforum.org/componentName: {{ .Release.Name }}-{{ .Values.component.name }}
+  {{- with .Values.trapreceiveroct.externalAccess.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: LoadBalancer
+  selector:
+    app: {{ .Release.Name }}-trapreceiveroct
+  ports:
+    - name: http
+      port: {{ .Values.trapreceiveroct.port }}
+      targetPort: {{ .Values.trapreceiveroct.port }}
+      protocol: TCP
+{{- end }}

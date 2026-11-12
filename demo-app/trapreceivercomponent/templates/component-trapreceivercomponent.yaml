@@ -1,0 +1,50 @@
+apiVersion: oda.tmforum.org/v1
+kind: Component
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.component.name }}
+  labels:
+    oda.tmforum.org/componentName: {{ .Release.Name }}-{{ .Values.component.name }}
+spec:
+  componentMetadata:
+    id: {{ .Values.component.id }}
+    name: {{ .Values.component.name }}
+    functionalBlock: {{ .Values.component.functionalBlock }}
+    publicationDate: {{ .Values.component.publicationDate }}
+    status: specified
+    version: {{ .Values.component.version }}
+    description: >-
+      Publish-only ODA component for trapreceiveroct: receives Zabbix
+      alarm/clear traps over HTTP and republishes them as TMF642-style
+      CloudEvents onto two Kafka topics, one per action (alarmDetected,
+      alarmCleared). No exposedAPIs -- this component exists only to
+      register its published notifications.
+    maintainers:
+      - name: TrapReceiver Team
+        email: trapreceiver-team@example.com
+    owners:
+      - name: TrapReceiver Team
+        email: trapreceiver-team@example.com
+  coreFunction:
+    exposedAPIs: []
+    dependentAPIs: []
+  # NOTE on eventNotification.publishedEvents: deliberately empty.
+  # The installed Component CRD has no `topic` override field under
+  # publishedEvents[].specification[], so the Component Operator derives its
+  # own (release-name-prefixed) topic name instead of using the literal
+  # names this component actually publishes to. Declaring publishedEvents
+  # here caused the operator to auto-create extra, unused
+  # PublishedNotification objects/topics alongside the real ones (see
+  # k8s/05b/05c and the README's "Topic-name caveat"). Until the CRD gains a
+  # topic override, the two standalone PublishedNotification CRs
+  # (k8s/05b-*-detected.yaml, k8s/05c-*-clear.yaml) are the single source of
+  # truth for topic registration -- apply those directly, not via this
+  # Component.
+  #
+  # apiType note: the installed PublishedNotification/Component CRDs only
+  # accept `openapi` in their apiType enum today (confirmed via
+  # `kubectl explain ... --recursive`); `asyncapi` is not yet a valid value
+  # even though these events are AsyncAPI-described CloudEvents, not OpenAPI.
+  # `openapi` is used here only because it's the one value both CRDs accept.
+  eventNotification:
+    publishedEvents: []
+    subscribedEvents: []

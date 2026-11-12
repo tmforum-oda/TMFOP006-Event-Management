@@ -1,0 +1,123 @@
+##############################################################################
+# Deployment + Services: trapreceiveroct
+# The workload behind this chart's Component CR (which publishes no
+# eventNotification.publishedEvents of its own -- see
+# component-trapreceivercomponent.yaml for why).
+##############################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-trapreceiveroct
+  labels:
+    app: {{ .Release.Name }}-trapreceiveroct
+    version: {{ .Values.component.version | quote }}
+    oda.tmforum.org/componentName: {{ .Release.Name }}-{{ .Values.component.name }}
+spec:
+  replicas: {{ .Values.trapreceiveroct.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-trapreceiveroct
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-trapreceiveroct
+        version: {{ .Values.component.version | quote }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # kafka-python ships inside the image (requirements.txt) -- no init
+      # container needed to install it at every pod start.
+      containers:
+        - name: trapreceiveroct
+          image: {{ .Values.trapreceiveroct.image }}
+          imagePullPolicy: {{ .Values.trapreceiveroct.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.trapreceiveroct.port }}
+              protocol: TCP
+          env:
+            - name: CONFIG_PATH
+              value: /app/config/config.yaml
+            - name: PORT
+              value: {{ .Values.trapreceiveroct.port | quote }}
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: TRAP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecretName }}
+                  key: TRAP_API_KEY
+            - name: DASHBOARD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecretName }}
+                  key: DASHBOARD_API_KEY
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-trapreceiveroct-kafka-config
+            - secretRef:
+                name: {{ .Values.kafka.existingSecretName }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: {{ .Values.trapreceiveroct.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: {{ .Values.trapreceiveroct.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+            # readOnlyRootFilesystem needs a writable /tmp (gunicorn's
+            # worker heartbeat files, Python's own tempfile usage).
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ .Release.Name }}-trapreceiveroct-config
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-trapreceiveroct
+  labels:
+    app: {{ .Release.Name }}-trapreceiveroct
+    oda.tmforum.org/componentName: {{ .Release.Name }}-{{ .Values.component.name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Release.Name }}-trapreceiveroct
+  ports:
+    - name: http
+      port: {{ .Values.trapreceiveroct.port }}
+      targetPort: {{ .Values.trapreceiveroct.port }}
+      protocol: TCP

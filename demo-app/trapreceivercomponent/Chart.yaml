@@ -1,0 +1,52 @@
+apiVersion: v2
+name: trapreceivercomponent
+description: >-
+  TrapReceiver ODA Component (publish-only). Receives Zabbix alarm/clear
+  traps over HTTP and republishes them as TMF642-style CloudEvents onto two
+  Kafka topics (one per action), registered as oda.tmforum.org
+  PublishedNotifications so the Event Management Operator provisions the
+  topics + producer ACLs.
+
+# A chart can be either an 'application' or a 'library' chart.
+type: application
+
+# Chart version -- bump this each time the chart/templates change.
+version: 2.0.0
+# version: 2.0.0 - security and correctness remediation pass:
+#                  - Component no longer declares eventNotification.
+#                    publishedEvents, since the Component CRD has no topic
+#                    override field and this caused duplicate, auto-named
+#                    PublishedNotification/topic creation; the standalone
+#                    PublishedNotification CRs (k8s/05b/05c) are the single
+#                    source of truth for topic registration instead.
+#                  - Removed the install-kafka-python init container
+#                    (already installed from requirements.txt); added a
+#                    pod/container securityContext (non-root, read-only
+#                    root filesystem, seccomp, dropped capabilities).
+#                  - Removed raw k8s manifests that duplicated what this
+#                    chart renders.
+#                  - Real AsyncAPI 3.1.0 documents (asyncapi/) replacing
+#                    example.com placeholder specification URLs.
+#                  - Application image bumped to 2.0.0: gunicorn instead of
+#                    Flask's development server; TMF642-required alarm/
+#                    clear fields are now validated (400) instead of
+#                    defaulted when missing; a failed Kafka publish now
+#                    returns 502 instead of silently returning 200; a
+#                    dashboard stored-XSS fix; config-driven auth routes;
+#                    added a pytest suite.
+# version: 1.2.0 - reverted the create-side topic name from
+#                  alarmCreated back to alarmDetected (the original,
+#                  Zabbix-facing name); alarmCleared unchanged.
+# version: 1.1.0 - split the single consolidated alarmDetected topic back
+#                  into separate alarmCreated/alarmCleared topics, matching
+#                  a create/clear naming convention used by sibling
+#                  components; added the public LoadBalancer Service for
+#                  Zabbix.
+# version: 1.0.0 - baseline: Component CR (publish-only) + trapreceiveroct Deployment,
+#                  consolidated onto the oda.trapReceiver.event.alarmDetected topic.
+
+# Version of the trapreceiveroct application image this chart deploys.
+# (Kept at the real, already-published image tag -- see note on chart
+# version 2.0.0 above: this is the chart/submission's second major
+# revision, not a new application image release.)
+appVersion: "1.1.0"
