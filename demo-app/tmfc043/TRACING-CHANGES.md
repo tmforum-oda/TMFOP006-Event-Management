@@ -1,7 +1,7 @@
 # TMFC043 input tracing: what changed, and how to undo it
 
-Status: deployed to the AWS EKS dev cluster (`ihpp-canvas-dev-01`) on 15 November 2026.
-Branch: `feature/tmfc043-input-tracing` (Azure DevOps). Application image `lekhamaru/tmfc043:0.2.0`.
+Status: deployed to an AWS EKS dev cluster on 15 November 2026.
+Application image `lekhamaru/tmfc043:0.2.0`.
 
 ## What tracing does, in one paragraph
 Each Kafka record that TMFC043 handles gets one span. The span is written to the pod log as one line. The trace
@@ -73,5 +73,4 @@ Rollback does not touch topics, Kafka ACLs, the Keycloak client, or messages alr
   the value to `false` explicitly.
 - Helm upgrades of this release need `--force-conflicts` while `kubectl` client-side apply still owns the image field. That
   is the same conflict we saw on the operator. Removing the old field owner is a separate clean-up.
-- Image `lekhamaru/tmfc043:0.2.0` is on Docker Hub. The collector image is third-party (`akumartmf/…`); it was approved
-  for use in `components`.
+- Image `lekhamaru/tmfc043:0.2.0` is on Docker Hub. The collector image is third-party (`akumartmf/…`).
