@@ -39,3 +39,13 @@ spec:
     {{- include "tmfc043.event" (dict "root" . "name" "serviceProblemStateChangeResourceEvent" "desc" "Service problem state change from the alarm management agent." "topic" .Values.topics.problemStateIn "api" "asyncapi" "publisher" .Values.publishers.alarmManagement) | nindent 4 }}
   securityFunction:
     canvasSystemRole: canvasRole
+{{- if .Values.traceCollector.enabled }}
+  managementFunction:
+    exposedAPIs:
+      - name: trace-collector-metrics
+        apiType: openmetrics
+        implementation: {{ .Release.Name }}-trace
+        path: /{{ .Release.Name }}/trace-collector-metrics
+        port: 8080
+    dependentAPIs: []
+{{- end }}
