@@ -1,0 +1,21 @@
+trapreceivercomponent has been installed.
+
+1. A Component resource was created:
+     kubectl -n {{ .Release.Namespace }} get component {{ .Release.Name }}-{{ .Values.component.name }}
+
+2. If a Component Operator is watching this namespace, it will reconcile the
+   Component's eventNotification.publishedEvents into its own
+   PublishedNotification resource, which the Event Management Operator then
+   turns into the Kafka topic + producer ACLs. Check with:
+     kubectl -n {{ .Release.Namespace }} get publishednotifications -l oda.tmforum.org/componentName={{ .Release.Name }}-{{ .Values.component.name }}
+
+   NOTE: confirm the topic name that resource ends up with actually matches
+   {{ .Values.eventNotification.topic }} before relying on it -- see this
+   chart's README for why that isn't guaranteed yet on this cluster.
+
+3. The trapreceiveroct workload is running at:
+     kubectl -n {{ .Release.Namespace }} get pods -l app={{ .Release.Name }}-trapreceiveroct
+
+4. Required pre-existing Secrets (not created by this chart) in this namespace:
+     {{ .Values.kafka.existingSecretName }}  (KAFKA_SASL_USERNAME, KAFKA_SASL_PASSWORD)
+     {{ .Values.auth.existingSecretName }}   (TRAP_API_KEY, DASHBOARD_API_KEY)

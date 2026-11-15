@@ -1,0 +1,60 @@
+{
+  "asyncapi": "3.1.0",
+  "info": {
+    "title": "TMF642 Alarm Clear",
+    "version": "5.0.1",
+    "description": "Zabbix-sourced alarm cleared event, republished by trapreceivercomponent as a TMF642 AlarmClear CloudEvent onto oda.trapReceiver.event.alarmCleared."
+  },
+  "channels": {
+    "alarmClear": {
+      "address": "oda.trapReceiver.event.alarmCleared",
+      "messages": {
+        "alarmClear": { "$ref": "#/components/messages/AlarmClear" }
+      }
+    }
+  },
+  "operations": {
+    "clearAlarm": {
+      "action": "send",
+      "channel": { "$ref": "#/channels/alarmClear" },
+      "messages": [ { "$ref": "#/channels/alarmClear/messages/alarmClear" } ]
+    }
+  },
+  "components": {
+    "messages": {
+      "AlarmClear": {
+        "name": "AlarmClear",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/ClearAlarm" }
+      }
+    },
+    "schemas": {
+      "ClearAlarm": {
+        "type": "object",
+        "required": [
+          "@type", "alarmClearedTime", "alarmPattern", "correlationId",
+          "recoveryEventId", "clearSystemId", "clearUserId"
+        ],
+        "properties": {
+          "@type": { "type": "string", "const": "ClearAlarm" },
+          "alarmClearedTime": { "type": "string", "format": "date-time" },
+          "alarmPattern": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["@type", "id"],
+              "properties": {
+                "@type": { "type": "string", "const": "AlarmRef" },
+                "id": { "type": "string" }
+              }
+            }
+          },
+          "correlationId": { "type": "string" },
+          "recoveryEventId": { "type": "string" },
+          "clearSystemId": { "type": "string" },
+          "clearUserId": { "type": "string" }
+        }
+      }
+    }
+  }
+}
