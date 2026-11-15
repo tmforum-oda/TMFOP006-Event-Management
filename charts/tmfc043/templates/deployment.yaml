@@ -26,6 +26,12 @@ spec:
           imagePullPolicy: {{ include "tmfc043.imagePullPolicy" . }}
           env:
             - {name: LOGGING, value: {{ .Values.loglevel | quote }}}
+            - {name: OTEL_TRACES_ENABLED, value: {{ .Values.tracing.enabled | quote }}}
+            - {name: OTEL_TRACES_SAMPLER_ARG, value: {{ .Values.tracing.samplingRatio | quote }}}
+            - {name: OTEL_SERVICE_NAME, value: "tmfc043"}
+            - {name: DEPLOYMENT_ENVIRONMENT, value: {{ .Values.tracing.environment | quote }}}
+            - {name: APP_VERSION, value: {{ .Values.version | quote }}}
+            - {name: PYTHONUNBUFFERED, value: "1"}
             - {name: KAFKA_BOOTSTRAP_SERVERS, value: {{ .Values.kafka.bootstrapServers | quote }}}
             - {name: KAFKA_SECURITY_PROTOCOL, value: {{ .Values.kafka.securityProtocol | quote }}}
             - {name: KAFKA_SSL_CAFILE, value: /certs/kafka/ca.crt}

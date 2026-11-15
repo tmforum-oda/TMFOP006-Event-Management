@@ -3,7 +3,7 @@
 #   DOCKER_BUILDKIT=0 docker build --platform linux/amd64 -t <dockerhub-user>/tmfc043:<version> .
 FROM python:3.12-slim
 
-ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
 
 COPY requirements.txt .

@@ -1,10 +1,17 @@
 # Image: image + version (+ optional prereleaseSuffix, which forces imagePullPolicy Always), as in the upstream charts.
 image: lekhamaru/tmfc043
-version: 0.1.0
+version: 0.2.0
 prereleaseSuffix:
 imagePullPolicy: IfNotPresent
 replicas: 1
 loglevel: "20"
+
+# Input tracing: one span per Kafka record, written as log lines for the trace collector.
+# Not sent over OTLP. Set enabled false to turn it off.
+tracing:
+  enabled: true
+  samplingRatio: "1.0"
+  environment: canvas-demo
 
 kafka:
   # Port 9095 is the broker's OAuth listener (Keycloak tokens).

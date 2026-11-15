@@ -15,6 +15,7 @@ forever, and a failed publish stops the offset commit so the message is redelive
 
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import os
@@ -27,6 +28,7 @@ from kafka import KafkaConsumer, KafkaProducer
 import api
 import bridge
 import kafka_conf
+import telemetry
 
 logging.basicConfig(level=int(os.environ.get("LOGGING", "20")), format="%(asctime)s %(levelname)s [tmfc043] %(message)s")
 log = logging.getLogger("tmfc043")
@@ -91,11 +93,15 @@ def run_route(group_suffix: str, in_topic: str, out_topic: str, transform: Calla
     )
     log.info("route started: %s -> %s (group %s)", in_topic, out_topic, GROUP_PREFIX + group_suffix)
     for record in consumer:
-        try:
-            forward(record.value, out_topic, transform)
-            consumer.commit()
-        except Exception:  # noqa: BLE001 - keep the loop alive; the uncommitted message is redelivered
-            log.exception("route %s failed, will retry the message", in_topic)
+        with telemetry.input_record(record, GROUP_PREFIX + group_suffix) as span:
+            try:
+                forwarded = forward(record.value, out_topic, transform)
+                # Set the outcome before the commit, so a commit failure is reported as an error.
+                telemetry.mark(span, "forwarded" if forwarded else "skipped", None if forwarded else "InvalidInput")
+                consumer.commit()
+            except Exception as exc:  # noqa: BLE001 - keep the loop alive; the uncommitted message is redelivered
+                telemetry.mark(span, "error", type(exc).__name__)
+                log.exception("route %s failed, will retry the message", in_topic)
 
 
 def routes_from_env(env=os.environ) -> List[tuple]:
@@ -109,6 +115,8 @@ def healthz():
 
 
 def main() -> None:
+    telemetry.configure()
+    atexit.register(telemetry.shutdown)
     for group, tin, tout, fn in routes_from_env():
         threading.Thread(target=run_route, args=(group, tin, tout, fn), daemon=True).start()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))
