@@ -66,10 +66,10 @@ global:
   # registry: myregistry.example.com/
   imagePullSecrets: []
 
-# Trace collector for this component. Off by default: enable only after approval (see the tracing branch notes).
+# Trace collector for this component. Enabled on the EKS dev cluster since revision 4 (see demo-app/tmfc043/TRACING-CHANGES.md).
 # It reads this component's pod logs and exports reconstructed trace events to Langfuse. Not an OTLP receiver.
 traceCollector:
-  enabled: false
+  enabled: true
   image: akumartmf/pf-netoai-trace-collector:v0.1.0   # same version the fault-management agent collector runs
   pullPolicy: IfNotPresent
   exportEnabled: true
