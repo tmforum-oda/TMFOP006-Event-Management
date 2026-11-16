@@ -58,7 +58,7 @@ Chart version stayed `tmfc043-0.1.0` in every revision. The app version is `0.2.
 Pick the target that matches what you need:
 
 1. **Collector off, keep the app on 0.2.0** (no Component change beyond removing the entry):
-   `helm upgrade tmfc043 charts/tmfc043 -n components --set traceCollector.enabled=false --force-conflicts --wait`
+   `helm upgrade tmfc043 demo-app/tmfc043/chart -n components --set traceCollector.enabled=false --force-conflicts --wait`
 2. **Full rollback to the original 0.1.0** (removes the collector and tracing; this is the tested baseline):
    `helm rollback tmfc043 1 -n components --wait`
    Revision 1 has no collector objects, so Helm removes them.

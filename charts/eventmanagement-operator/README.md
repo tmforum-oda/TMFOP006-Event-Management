@@ -7,18 +7,17 @@ consumer ACLs, and (in adapter transport mode) notification-adapter
 Deployments.
 
 Source code: [`../../source/eventOperator/`](../../source/eventOperator/).
-CRDs this operator requires: [`../../crds/`](../../crds/).
+CRDs this operator requires: `PublishedNotification` and `SubscribedNotification`, as installed by the Canvas `oda-crds` chart.
 
 ## Prerequisites
 
 1. A reachable Kafka cluster (bootstrap servers configurable via
    `kafka.bootstrapServers`).
-2. The `PublishedNotification` and `SubscribedNotification` CRDs installed
-   on the cluster -- apply them from [`../../crds/`](../../crds/) first:
-   ```sh
-   kubectl apply -f ../../crds/oda-publishednotification-crd.yaml
-   kubectl apply -f ../../crds/oda-subscribednotification-crd.yaml
-   ```
+2. The `PublishedNotification` and `SubscribedNotification` CRDs installed on
+   the cluster by the Canvas `oda-crds` chart. This repository does not ship its
+   own copies. The `apiType` values `asyncapi`, `a2a` and `mcp` are not in the
+   upstream CRDs yet; they need a change to `oda-canvas` (`charts/oda-crds`)
+   before the demo manifests apply cleanly on a stock Canvas.
 3. (Optional) A pre-existing Secret with SASL credentials for the
    operator's own Kafka admin principal, if the broker requires
    authentication. Not created by this chart.

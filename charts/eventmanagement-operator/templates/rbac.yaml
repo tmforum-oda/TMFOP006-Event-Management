@@ -9,19 +9,29 @@ kind: ClusterRole
 metadata:
   name: {{ .Release.Name }}-role
 rules:
-  # ODA CRs -- full access including /status subresource (required by KOPF)
+  # Notifications -- full access including /status subresource (required by KOPF)
   - apiGroups: ["oda.tmforum.org"]
     resources:
-      - components
-      - components/status
       - publishednotifications
       - publishednotifications/status
       - subscribednotifications
       - subscribednotifications/status
     verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
-  # Core resources -- events, configmaps, pods, services
+  # Components -- the operator only reads them. It writes one thing: the rollup of the
+  # notification states into components/status.
+  - apiGroups: ["oda.tmforum.org"]
+    resources: ["components"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["oda.tmforum.org"]
+    resources: ["components/status"]
+    verbs: ["get", "patch"]
+  # Namespaces -- read only (the operator watches the component namespace)
   - apiGroups: [""]
-    resources: ["events", "configmaps", "pods", "namespaces"]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  # Core resources -- events, configmaps, pods
+  - apiGroups: [""]
+    resources: ["events", "configmaps", "pods"]
     verbs: ["get", "list", "watch", "create", "patch", "update"]
   # Services -- the operator creates and deletes one per adapter Deployment
   - apiGroups: [""]

@@ -8,8 +8,8 @@ eventmanagement-operator has been installed into {{ .Values.operator.namespace }
      curl http://localhost:8080/healthz
 
 3. The CRDs it watches (PublishedNotification, SubscribedNotification) must
-   already be installed on the cluster -- see ../../crds/. This chart does
-   not install them (CRDs are cluster-scoped and typically managed
+   already be installed on the cluster, by the Canvas oda-crds chart. This chart
+   does not install them (CRDs are cluster-scoped and typically managed
    separately from a given operator's lifecycle).
 
 4. It watches ODA Component namespace: {{ .Values.operator.componentNamespace }}
