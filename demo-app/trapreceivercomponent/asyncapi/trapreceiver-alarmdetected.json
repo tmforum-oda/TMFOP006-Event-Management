@@ -1,0 +1,68 @@
+{
+  "asyncapi": "3.1.0",
+  "info": {
+    "title": "TMF642 Alarm Create",
+    "version": "5.0.1",
+    "description": "Zabbix-sourced alarm raised event, republished by trapreceivercomponent as a TMF642 AlarmCreate CloudEvent onto oda.trapReceiver.event.alarmDetected."
+  },
+  "channels": {
+    "alarmCreate": {
+      "address": "oda.trapReceiver.event.alarmDetected",
+      "messages": {
+        "alarmCreate": { "$ref": "#/components/messages/AlarmCreate" }
+      }
+    }
+  },
+  "operations": {
+    "createAlarm": {
+      "action": "send",
+      "channel": { "$ref": "#/channels/alarmCreate" },
+      "messages": [ { "$ref": "#/channels/alarmCreate/messages/alarmCreate" } ]
+    }
+  },
+  "components": {
+    "messages": {
+      "AlarmCreate": {
+        "name": "AlarmCreate",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/Alarm" }
+      }
+    },
+    "schemas": {
+      "Alarm": {
+        "type": "object",
+        "required": [
+          "@type", "externalAlarmId", "state", "alarmType", "perceivedSeverity",
+          "probableCause", "alarmedObjectType", "alarmedObject",
+          "sourceSystemId", "alarmRaisedTime", "correlationId"
+        ],
+        "properties": {
+          "@type": { "type": "string", "const": "Alarm" },
+          "externalAlarmId": { "type": "string" },
+          "state": { "type": "string", "enum": ["raised", "updated", "cleared"] },
+          "alarmType": { "type": "string" },
+          "perceivedSeverity": {
+            "type": "string",
+            "enum": ["critical", "major", "minor", "warning", "indeterminate", "cleared"]
+          },
+          "probableCause": { "type": "string" },
+          "specificProblem": { "type": "string" },
+          "alarmedObjectType": { "type": "string" },
+          "alarmedObject": {
+            "type": "object",
+            "required": ["@type", "id"],
+            "properties": {
+              "@type": { "type": "string" },
+              "id": { "type": "string" },
+              "@referredType": { "type": "string" }
+            }
+          },
+          "sourceSystemId": { "type": "string" },
+          "alarmRaisedTime": { "type": "string", "format": "date-time" },
+          "alarmDetails": { "type": "string" },
+          "correlationId": { "type": "string" }
+        }
+      }
+    }
+  }
+}

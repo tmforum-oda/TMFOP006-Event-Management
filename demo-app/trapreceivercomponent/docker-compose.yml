@@ -1,0 +1,63 @@
+# =============================================================
+# Run trapreceivercomponent locally, no Kubernetes / no cloud needed.
+#
+#   docker compose up --build
+#
+# Brings up a single-node Kafka broker (KRaft mode, no Zookeeper) and the
+# trapreceivercomponent app together, wired to talk to each other. See
+# README.md "Quick start (run it locally)" for the full walkthrough,
+# including a sample curl request once this is running.
+#
+# Demo credentials only -- TRAP_API_KEY / DASHBOARD_API_KEY below are
+# plaintext placeholders for local testing, not real secrets.
+# =============================================================
+services:
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: trapreceiver-demo-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: "trapreceiver-demo-cluster-id"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  trapreceiver:
+    build: .
+    container_name: trapreceiver-demo-app
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      TRAP_API_KEY: demo-trap-key
+      DASHBOARD_API_KEY: demo-dashboard-key
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_SECURITY_PROTOCOL: PLAINTEXT
+    volumes:
+      - ./k8s/03-trapreceiveroct-configmap.yaml:/app/config-source.yaml:ro
+    # The ConfigMap file wraps the real config.yaml under `data.config.yaml`;
+    # extract it once at container start, then run the app normally.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        python3 -c "
+        import yaml
+        doc = yaml.safe_load(open('/app/config-source.yaml'))
+        open('/app/config/config.yaml', 'w').write(doc['data']['config.yaml'])
+        "
+        exec python3 -m trap_receiver.app
