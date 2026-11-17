@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Values.operator.namespace }}
+data:
+  COMPONENT_NAMESPACE: {{ .Values.operator.componentNamespace | quote }}
+  COMPONENT_NAMESPACES_CLI: {{ printf "-n %s" .Values.operator.componentNamespace | quote }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.kafka.bootstrapServers | quote }}
+  KAFKA_SECURITY_PROTOCOL: {{ .Values.kafka.securityProtocol | quote }}
+  KAFKA_SASL_MECHANISM: {{ .Values.kafka.saslMechanism | quote }}
+  KAFKA_SSL_CAFILE: {{ .Values.kafka.sslCafile | quote }}
+  KAFKA_TOPIC_PREFIX: {{ .Values.kafka.topicPrefix | quote }}
+  KAFKA_TOPIC_PARTITIONS: {{ .Values.kafka.topicPartitions | quote }}
+  KAFKA_TOPIC_REPLICATION_FACTOR: {{ .Values.kafka.topicReplicationFactor | quote }}
+  KAFKA_TOPIC_RETENTION_MS: {{ .Values.kafka.topicRetentionMs | quote }}
+  KAFKA_ALLOW_TOPIC_DELETE: {{ .Values.kafka.allowTopicDelete | quote }}
+  KAFKA_REQUEST_TIMEOUT_MS: {{ .Values.kafka.requestTimeoutMs | quote }}
+  KAFKA_USER_MANAGEMENT: {{ .Values.kafka.userManagement.enabled | quote }}
+  KAFKA_USER_NAMESPACE: {{ .Values.kafka.userManagement.namespace | quote }}
+  KAFKA_CLUSTER_NAME: {{ .Values.kafka.userManagement.clusterName | quote }}
+  KAFKA_USER_API_VERSION: {{ .Values.kafka.userManagement.apiVersion | quote }}
+  ADAPTER_IMAGE: {{ include "eventmanagement-operator.adapterImage" . | quote }}
+  ADAPTER_IMAGE_PULL_POLICY: {{ .Values.adapter.imagePullPolicy | quote }}
+  ADAPTER_ENTRYPOINT: {{ .Values.adapter.entrypoint | quote }}
+  ADAPTER_PORT: {{ .Values.adapter.port | quote }}
+  ADAPTER_CPU_REQUEST: {{ .Values.adapter.resources.requests.cpu | quote }}
+  ADAPTER_CPU_LIMIT: {{ .Values.adapter.resources.limits.cpu | quote }}
+  ADAPTER_MEMORY_REQUEST: {{ .Values.adapter.resources.requests.memory | quote }}
+  ADAPTER_MEMORY_LIMIT: {{ .Values.adapter.resources.limits.memory | quote }}
+  ADAPTER_CREDENTIALS_SECRET: {{ .Values.adapter.existingCredentialsSecret | quote }}
+  OPERATOR_IMAGE: {{ include "eventmanagement-operator.image" . | quote }}
+  KOPF_PEERING_NAME: {{ .Values.kopf.peeringName | quote }}
+  KOPF_PEERING_PRIORITY: {{ .Values.kopf.peeringPriority | quote }}
+  KOPF_MAX_WORKERS: {{ .Values.kopf.maxWorkers | quote }}
+  RECONCILE_INTERVAL: {{ .Values.reconcileIntervalSeconds | quote }}
+  LOGGING: {{ .Values.logging | quote }}
+  SCHEMA_REGISTRY_URL: {{ .Values.schemaRegistry.url | quote }}
+  SCHEMA_REGISTRY_VERIFY_SSL: {{ .Values.schemaRegistry.verifySsl | quote }}

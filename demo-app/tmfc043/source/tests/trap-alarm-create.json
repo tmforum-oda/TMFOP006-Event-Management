@@ -1,0 +1,42 @@
+{
+  "specversion": "1.0",
+  "id": "evt-public-test-002-create",
+  "source": "/zabbix/problem/public-test-002",
+  "type": "org.tmforum.tmf642.alarm.create",
+  "time": "2026-11-05T10:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "https://raw.githubusercontent.com/tmforum-oda/TMFOP006-Event-Management/main/demo-app/trapreceivercomponent/asyncapi/trapreceiver-alarmdetected.json#/components/messages/AlarmCreate",
+  "payloadcategory": "asyncapi",
+  "correlationid": "public-test-002",
+  "data": {
+    "asyncapi": "3.1.0",
+    "info": {"title": "TMF642 Alarm Create", "version": "5.0.1"},
+    "channels": {"alarmCreate": {"address": "oda.trapReceiver.event.alarmDetected", "messages": {"alarmCreate": {"$ref": "#/components/messages/AlarmCreate"}}}},
+    "operations": {"createAlarm": {"action": "send", "channel": {"$ref": "#/channels/alarmCreate"}, "messages": [{"$ref": "#/channels/alarmCreate/messages/alarmCreate"}]}},
+    "components": {
+      "messages": {
+        "AlarmCreate": {
+          "name": "AlarmCreate",
+          "contentType": "application/json",
+          "payload": {
+            "const": {
+              "@type": "Alarm",
+              "externalAlarmId": "public-test-002",
+              "state": "raised",
+              "alarmType": "operationalViolation",
+              "perceivedSeverity": "minor",
+              "probableCause": "Interface Gi1/0(): Link down",
+              "specificProblem": "",
+              "alarmedObjectType": "Interface",
+              "alarmedObject": {"@type": "AlarmedObjectRef", "id": "10611", "@referredType": "Host"},
+              "sourceSystemId": "Zabbix",
+              "alarmRaisedTime": "2026-11-05T10:00:00Z",
+              "alarmDetails": "Operational data: Current state: down (2)",
+              "correlationId": "public-test-002"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+eventmanagement-operator has been installed into {{ .Values.operator.namespace }}.
+
+1. Check the operator pod is running:
+     kubectl -n {{ .Values.operator.namespace }} get pods -l app={{ .Release.Name }}
+
+2. Check its health endpoint:
+     kubectl -n {{ .Values.operator.namespace }} port-forward deploy/{{ .Release.Name }} 8080:8080
+     curl http://localhost:8080/healthz
+
+3. The CRDs it watches (PublishedNotification, SubscribedNotification) must
+   already be installed on the cluster, by the Canvas oda-crds chart. This chart
+   does not install them (CRDs are cluster-scoped and typically managed
+   separately from a given operator's lifecycle).
+
+4. It watches ODA Component namespace: {{ .Values.operator.componentNamespace }}
+   (change with --set operator.componentNamespace=<ns> at install time).
+
+5. Register a component's event by creating a PublishedNotification /
+   SubscribedNotification resource in that namespace -- see
+   ../../demo-app/trapreceivercomponent/k8s/ for a worked example.

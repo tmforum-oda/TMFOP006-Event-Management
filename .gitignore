@@ -1,0 +1,10 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local build and test output
+*.log
+.DS_Store

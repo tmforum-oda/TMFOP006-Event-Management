@@ -1,0 +1,57 @@
+apiVersion: oda.tmforum.org/v1
+kind: Component
+metadata:
+  name: uctest
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: uctest
+spec:
+  componentMetadata:
+    id: UCTEST
+    name: UseCaseTest
+    version: 1.0.0
+    description: Test component for the Event Management Operator install, update and delete use cases.
+    publicationDate: "2025-03-11T00:00:00.000Z"
+    status: specified
+    functionalBlock: Production
+    owners:
+    - email: Redacted
+      name: Redacted
+    maintainers:
+    - name: Redacted
+      email: components@tmforum.org
+    SID: []
+    eTom: []
+    functionalFramework: []
+  coreFunction:
+    exposedAPIs: []
+    dependentAPIs: []
+  securityFunction:
+    canvasSystemRole: canvasRole
+    exposedAPIs: []
+  eventNotification:
+    publishedEvents:
+    - name: uc.event.created
+      description: Published event, kept in every step.
+      topic: oda.uctest.event.created
+      specification:
+      - apiType: asyncapi
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/operator-use-cases/README.md
+        version: 1.0.0
+    - name: uc.event.updated
+      description: Published event whose topic changes in step 2.
+      topic: oda.uctest.event.updated
+      specification:
+      - apiType: asyncapi
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/operator-use-cases/README.md
+        version: 1.0.0
+    subscribedEvents:
+    - name: alarmDetectedFromTrapReceiver
+      description: Subscribes to the trap receiver topic (native consumer, no adapter).
+      topic: oda.trapReceiver.event.alarmDetected
+      publisher: trapreceivercomponent
+      transport: native
+      specification:
+      - apiType: asyncapi
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/operator-use-cases/README.md
+        version: 1.0.0

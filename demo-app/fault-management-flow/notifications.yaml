@@ -1,0 +1,341 @@
+# Notifications for the fault-management flow, except TMFC043 (declared in ../tmfc043/component.yaml)
+# and the trap receiver (declared by its own chart). Topics and apiTypes come only from createflowupdated.png.
+# All agents and the digital twin are built and owned by NetoAI, not Jio. These objects only stand in
+# for their Components until NetoAI registers its own. NetoAI agents are direct Kafka clients, so every
+# subscriber uses transport: native (no adapter pod). apiType is kept as drawn in the diagram.
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: alarm-management-agent-createalarm-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: alarm-management-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: createAlarm
+  description: alarm-management-agent published oda.alarmManagement.command.createAlarm
+    (createflowupdated.png)
+  apiType: asyncapi
+  topic: oda.alarmManagement.command.createAlarm
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: alarm-management-agent-serviceproblemcreatenotificationevent-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: alarm-management-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: serviceProblemCreateNotificationEvent
+  description: alarm-management-agent published oda.alarmManagement.serviceProblemCreateNotificationEvent
+    (createflowupdated.png)
+  apiType: asyncapi
+  topic: oda.alarmManagement.serviceProblemCreateNotificationEvent
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: alarm-management-agent-createserviceproblemnotificationevent-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: alarm-management-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: createServiceProblemNotificationEvent
+  description: alarm-management-agent subscribed oda.digitalTwin.createServiceProblemNotificationEvent
+    (createflowupdated.png)
+  apiType: a2a
+  topic: oda.digitalTwin.createServiceProblemNotificationEvent
+  publisher: netoai-digital-twin
+  transport: native
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: alarm-management-agent-alarmcreateevent-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: alarm-management-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: alarmCreateEvent
+  description: alarm-management-agent subscribed oda.tmf642.alarmCreateEvent (createflowupdated.png)
+  apiType: a2a
+  topic: oda.tmf642.command.createAlarm
+  publisher: tmfc043
+  transport: native
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: netoai-digital-twin-createalarmnotificationevent-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: netoai-digital-twin
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: createAlarmNotificationEvent
+  description: netoai-digital-twin published oda.digitalTwin.createAlarmNotificationEvent
+    (createflowupdated.png)
+  apiType: openapi
+  topic: oda.digitalTwin.createAlarmNotificationEvent
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: netoai-digital-twin-createserviceproblemnotificationevent-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: netoai-digital-twin
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: createServiceProblemNotificationEvent
+  description: netoai-digital-twin published oda.digitalTwin.createServiceProblemNotificationEvent
+    (createflowupdated.png)
+  apiType: a2a
+  topic: oda.digitalTwin.createServiceProblemNotificationEvent
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: netoai-digital-twin-createtroubleticket-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: netoai-digital-twin
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: createTroubleTicket
+  description: netoai-digital-twin published oda.digitalTwin.command.createTroubleTicket
+    (createflowupdated.png)
+  apiType: a2a
+  topic: oda.digitalTwin.command.createTroubleTicket
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: netoai-digital-twin-createalarm-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: netoai-digital-twin
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: createAlarm
+  description: netoai-digital-twin subscribed oda.alarmManagement.command.createAlarm
+    (createflowupdated.png)
+  apiType: asyncapi
+  topic: oda.alarmManagement.command.createAlarm
+  publisher: alarm-management-agent
+  transport: native
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: troubleticket-handler-agent-createtroubleticket-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: troubleticket-handler-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: createTroubleTicket
+  description: troubleticket-handler-agent subscribed oda.digitalTwin.command.createTroubleTicket
+    (createflowupdated.png)
+  apiType: a2a
+  topic: oda.digitalTwin.command.createTroubleTicket
+  publisher: netoai-digital-twin
+  transport: native
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: service-problem-agent-serviceproblemcreatenotificationevent-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: service-problem-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: serviceProblemCreateNotificationEvent
+  description: service-problem-agent subscribed oda.tmf656.serviceProblemCreateNotificationEvent
+    (createflowupdated.png)
+  apiType: a2a
+  topic: oda.tmf656.serviceProblemCreateNotificationEvent
+  publisher: tmfc043
+  transport: native
+  implementation: service-problem-agent
+  port: 8080
+  callback: /listener/serviceProblemCreateNotificationEvent
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: alarm-management-agent-clearalarm-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: alarm-management-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: clearAlarm
+  description: alarm-management-agent published oda.alarmManagement.command.clearAlarm (clearalarmupdated.png)
+  apiType: asyncapi
+  topic: oda.alarmManagement.command.clearAlarm
+  implementation: alarm-management-agent
+  port: 8080
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: alarm-management-agent-serviceproblemstatechangenotificationevent-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: alarm-management-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: serviceProblemStateChangeNotificationEvent
+  description: alarm-management-agent published oda.alarmManagement.serviceProblemStateChangeNotificationEvent (clearalarmupdated.png)
+  apiType: asyncapi
+  topic: oda.alarmManagement.serviceProblemStateChangeNotificationEvent
+  implementation: alarm-management-agent
+  port: 8080
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: alarm-management-agent-clearalarmcommand-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: alarm-management-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: clearAlarmCommand
+  description: alarm-management-agent subscribed oda.tmf642.command.clearAlarm (clearalarmupdated.png)
+  apiType: a2a
+  topic: oda.tmf642.command.clearAlarm
+  publisher: tmfc043
+  transport: native
+  implementation: alarm-management-agent
+  port: 8080
+  callback: /listener/clearAlarmCommand
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: alarm-management-agent-serviceproblemstatechange-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: alarm-management-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: serviceProblemStateChangeNotificationEvent
+  description: alarm-management-agent subscribed oda.digitalTwin.serviceProblemStateChangeNotificationEvent (clearalarmupdated.png)
+  apiType: a2a
+  topic: oda.digitalTwin.serviceProblemStateChangeNotificationEvent
+  publisher: netoai-digital-twin
+  transport: native
+  implementation: alarm-management-agent
+  port: 8080
+  callback: /listener/serviceProblemStateChangeNotificationEvent
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: netoai-digital-twin-clearalarmscreatenotificationevent-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: netoai-digital-twin
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: clearAlarmsCreateNotificationEvent
+  description: netoai-digital-twin published oda.digitalTwin.clearAlarmsCreateNotificationEvent (clearalarmupdated.png)
+  apiType: openapi
+  topic: oda.digitalTwin.clearAlarmsCreateNotificationEvent
+  implementation: netoai-digital-twin
+  port: 8080
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: netoai-digital-twin-serviceproblemstatechange-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: netoai-digital-twin
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: serviceProblemStateChangeNotificationEvent
+  description: netoai-digital-twin published oda.digitalTwin.serviceProblemStateChangeNotificationEvent (clearalarmupdated.png)
+  apiType: a2a
+  topic: oda.digitalTwin.serviceProblemStateChangeNotificationEvent
+  implementation: netoai-digital-twin
+  port: 8080
+---
+apiVersion: oda.tmforum.org/v1
+kind: PublishedNotification
+metadata:
+  name: netoai-digital-twin-troubleticketstatuschange-pub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: netoai-digital-twin
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: troubleTicketStatusChangeEvent
+  description: netoai-digital-twin published oda.digitalTwin.command.troubleTicketStatusChangeEvent (clearalarmupdated.png)
+  apiType: a2a
+  topic: oda.digitalTwin.command.troubleTicketStatusChangeEvent
+  implementation: netoai-digital-twin
+  port: 8080
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: netoai-digital-twin-clearalarm-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: netoai-digital-twin
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: clearAlarm
+  description: netoai-digital-twin subscribed oda.alarmManagement.command.clearAlarm (clearalarmupdated.png)
+  apiType: asyncapi
+  topic: oda.alarmManagement.command.clearAlarm
+  publisher: alarm-management-agent
+  transport: native
+  implementation: netoai-digital-twin
+  port: 8080
+  callback: /listener/clearAlarm
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: troubleticket-handler-agent-troubleticketstatuschange-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: troubleticket-handler-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: troubleTicketStatusChangeEvent
+  description: troubleticket-handler-agent subscribed oda.digitalTwin.command.troubleTicketStatusChangeEvent (clearalarmupdated.png)
+  apiType: a2a
+  topic: oda.digitalTwin.command.troubleTicketStatusChangeEvent
+  publisher: netoai-digital-twin
+  transport: native
+  implementation: troubleticket-handler-agent
+  port: 8080
+  callback: /listener/troubleTicketStatusChangeEvent
+---
+apiVersion: oda.tmforum.org/v1
+kind: SubscribedNotification
+metadata:
+  name: service-problem-agent-serviceproblemstatechange-sub
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: service-problem-agent
+    oda.tmforum.org/demo: fault-management-flow
+spec:
+  name: serviceProblemStateChangeNotificationEvent
+  description: service-problem-agent subscribed oda.tmf656.serviceProblemStateChangeNotificationEvent (clearalarmupdated.png)
+  apiType: a2a
+  topic: oda.tmf656.serviceProblemStateChangeNotificationEvent
+  publisher: tmfc043
+  transport: native
+  implementation: service-problem-agent
+  port: 8080
+  callback: /listener/serviceProblemStateChangeNotificationEvent
