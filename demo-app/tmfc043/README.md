@@ -39,6 +39,23 @@ groups, and Kafka only orders messages within one topic. TMFC043 forwards each m
 The alarm management agent must accept a clear for an alarm it has not seen yet, and match the create when it arrives,
 using the shared task id (`task_alarm_<externalAlarmId>`).
 
+## Tracing
+Each Kafka record TMFC043 handles on its four input routes gets one OpenTelemetry CONSUMER span. The span is written to the pod
+log as one line (`fm.tmfc043.kafka.input trace_id=... topic=... correlation_id=... outcome=...`). It is not sent over OTLP. The
+trace collector (`<release>-trace`, chart value `traceCollector.enabled`) reads the pod log and exports a reconstructed trace
+event to Langfuse, with the correlation id as the session id. `tracing.enabled=false` turns the span lines off.
+
+The lines carry identifiers only: no payloads, tokens or exception messages. A valid `traceparent` header on the record is
+continued; duplicate or malformed headers are ignored.
+
+Limits, because the collector rebuilds the span from the log line:
+- The exported trace id is a hash of the span's trace id, the duration is approximate and the status is always OK. Do not use
+  this view for latency or error rates.
+- Trace links between components are by correlation id, not by a native trace id.
+- After a collector restart only lines inside its lookback window (`traceCollector.logSinceSeconds`) are exported, and its
+  duplicate cache is in memory.
+- Malformed JSON is rejected when the record is decoded, before the per-record span starts, so it has no span.
+
 ## Tested on an AWS EKS dev cluster
 Create and clear sent through the trap receiver (`/api/v1/trap`) appeared as A2A messages on `oda.tmf642.command.createAlarm` and `oda.tmf642.command.clearAlarm`
 with the same correlation id and task id. A service problem event on `oda.alarmManagement.serviceProblemCreateNotificationEvent` was relayed to

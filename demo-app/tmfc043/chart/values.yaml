@@ -66,7 +66,7 @@ global:
   # registry: myregistry.example.com/
   imagePullSecrets: []
 
-# Trace collector for this component. Enabled on the EKS dev cluster since revision 4 (see demo-app/tmfc043/TRACING-CHANGES.md).
+# Trace collector for this component (see the Tracing section of demo-app/tmfc043/README.md).
 # It reads this component's pod logs and exports reconstructed trace events to Langfuse. Not an OTLP receiver.
 traceCollector:
   enabled: true
