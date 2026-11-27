@@ -1,0 +1,10 @@
+# Example values for an AWS EKS dev cluster running Strimzi Kafka. The release name must be canvas-eventmgmt-op
+# so that Helm manages the objects that already exist under that name:
+#   helm upgrade --install canvas-eventmgmt-op charts/eventmanagement-operator -n canvas \
+#     -f charts/eventmanagement-operator/examples/values-eks-dev.yaml
+kafka:
+  securityProtocol: SASL_PLAINTEXT
+  saslMechanism: SCRAM-SHA-512
+  existingSecretName: canvas-eventmgmt-op-kafka-creds   # holds KAFKA_SASL_USERNAME / KAFKA_SASL_PASSWORD
+  userManagement:
+    enabled: true

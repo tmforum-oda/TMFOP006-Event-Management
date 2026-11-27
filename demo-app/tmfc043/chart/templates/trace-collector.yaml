@@ -1,0 +1,120 @@
+{{- if .Values.traceCollector.enabled }}
+# Trace collector for TMFC043. Reads the pod logs of the application (app=tmfc043) and exports
+# reconstructed trace events to Langfuse. Not an OTLP receiver; the application does not send to it.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-trace
+  namespace: {{ .Release.Namespace }}
+  labels:
+    oda.tmforum.org/componentName: {{ .Release.Name }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-trace
+  namespace: {{ .Release.Namespace }}
+  labels:
+    oda.tmforum.org/componentName: {{ .Release.Name }}
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-trace
+  namespace: {{ .Release.Namespace }}
+  labels:
+    oda.tmforum.org/componentName: {{ .Release.Name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}-trace
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-trace
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-trace
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-trace
+    oda.tmforum.org/componentName: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-trace
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-trace
+        oda.tmforum.org/componentName: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-trace
+      containers:
+        - name: trace-collector
+          image: {{ .Values.traceCollector.image }}
+          imagePullPolicy: {{ .Values.traceCollector.pullPolicy }}
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+            - {name: COMPONENT_NAME, value: {{ .Release.Name | quote }}}
+            - {name: LOG_LABEL_SELECTOR, value: "app=tmfc043"}
+            - {name: TARGET_CONTAINER_NAME, value: "tmfc043"}
+            - {name: LOG_SINCE_SECONDS, value: {{ .Values.traceCollector.logSinceSeconds | quote }}}
+            - {name: LOG_WATCH_RESTART_SECONDS, value: {{ .Values.traceCollector.logWatchRestartSeconds | quote }}}
+            - {name: OTEL_SERVICE_NAME, value: "tmfc043-trace"}
+            - {name: LANGFUSE_OTEL_ENDPOINT, value: {{ .Values.traceCollector.langfuseEndpoint | quote }}}
+            - name: LANGFUSE_AUTH_HEADER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.traceCollector.existingSecret }}
+                  key: {{ .Values.traceCollector.authHeaderKey }}
+            - {name: EXPORT_ENABLED, value: {{ .Values.traceCollector.exportEnabled | quote }}}
+            - {name: DEPLOYMENT_ENVIRONMENT, value: {{ .Values.tracing.environment | quote }}}
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-trace
+  namespace: {{ .Release.Namespace }}
+  labels:
+    oda.tmforum.org/componentName: {{ .Release.Name }}
+spec:
+  selector:
+    app: {{ .Release.Name }}-trace
+  ports:
+    - {name: http, port: 8080, targetPort: http}
+{{- end }}

@@ -1,0 +1,68 @@
+##############################################################################
+# ClusterRole: the operator needs cluster-wide access (it watches
+# PublishedNotification / SubscribedNotification / Component resources,
+# which live in the Component namespace(s), not its own namespace) plus
+# kopf's own peering CRD for leader-election between replicas.
+##############################################################################
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-role
+rules:
+  # Notifications -- full access including /status subresource (required by KOPF)
+  - apiGroups: ["oda.tmforum.org"]
+    resources:
+      - publishednotifications
+      - publishednotifications/status
+      - subscribednotifications
+      - subscribednotifications/status
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+  # Components -- the operator only reads them. It writes one thing: the rollup of the
+  # notification states into components/status.
+  - apiGroups: ["oda.tmforum.org"]
+    resources: ["components"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["oda.tmforum.org"]
+    resources: ["components/status"]
+    verbs: ["get", "patch"]
+  # Namespaces -- read only (the operator watches the component namespace)
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  # Core resources -- events, configmaps, pods
+  - apiGroups: [""]
+    resources: ["events", "configmaps", "pods"]
+    verbs: ["get", "list", "watch", "create", "patch", "update"]
+  # Services -- the operator creates and deletes one per adapter Deployment
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+  # Deployments -- for adapter pod lifecycle management
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+  # Strimzi KafkaUser -- one per component, so the User Operator keeps the component's ACLs
+  - apiGroups: ["kafka.strimzi.io"]
+    resources: ["kafkausers"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+  # KOPF peering -- required for leader election between operator replicas
+  - apiGroups: ["kopf.dev"]
+    resources: ["clusterkopfpeerings"]
+    verbs: ["get", "list", "watch", "patch", "create", "update"]
+  # CRD discovery -- KOPF needs to watch the CRD list
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Release.Name }}-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}-account
+    namespace: {{ .Values.operator.namespace }}

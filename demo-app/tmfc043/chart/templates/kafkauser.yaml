@@ -1,0 +1,22 @@
+{{- if .Values.kafka.createKafkaUser }}
+# ACLs for principal User:oda-{{ .Release.Name }} (the Keycloak client of this component). Without a KafkaUser the
+# Strimzi User Operator removes ACLs created through the admin API. No "authentication": login is Keycloak OAuth.
+apiVersion: {{ .Values.kafka.userApiVersion }}
+kind: KafkaUser
+metadata:
+  name: oda-{{ .Release.Name }}
+  namespace: {{ .Values.kafka.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.clusterName }}
+spec:
+  authorization:
+    type: simple
+    acls:
+    {{- range $t := list .Values.topics.alarmDetected .Values.topics.alarmCleared .Values.topics.problemCreateIn .Values.topics.problemStateIn }}
+      - {resource: {type: topic, name: {{ $t }}}, operations: [Read, Describe]}
+    {{- end }}
+    {{- range $t := list .Values.topics.createAlarmOut .Values.topics.clearAlarmOut .Values.topics.problemCreateOut .Values.topics.problemStateOut }}
+      - {resource: {type: topic, name: {{ $t }}}, operations: [Write, Describe]}
+    {{- end }}
+      - {resource: {type: group, name: oda-{{ .Release.Name }}-{{ .Release.Name }}-, patternType: prefix}, operations: [Read]}
+{{- end }}

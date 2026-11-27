@@ -1,0 +1,105 @@
+# TMFC043 Fault Management component: event section only.
+# Topic names and apiTypes are taken from createflowupdated.png (create flow diagram) and nothing else.
+# exposedAPIs (TMF642 / TMF656 proxy) are added once the proxy implementation exists.
+apiVersion: oda.tmforum.org/v1
+kind: Component
+metadata:
+  name: tmfc043
+  namespace: components
+  labels:
+    oda.tmforum.org/componentName: tmfc043
+spec:
+  componentMetadata:
+    id: TMFC043
+    name: FaultManagement
+    version: 1.0.0
+    description: Fault Management component involves identifying, diagnosing, and resolving issues that prevent the communication
+      resources and their overlaying services from functioning correctly. Its scope covers this functionality at the ODA Production
+      layer while business related resolutions are not part of its scope. The Fault Management component manages the currently
+      active alarms or problem candidates, potentially modifying or enhancing their data to make persistent alarms more actionable.
+      It may apply logic to preserve alarms that reflect actual problems, eliminating those that are merely symptoms. Various
+      actions can be taken using the alarm/problem information as part of the resolution process, such as applying automated/automonous
+      corrective actions or opening trouble tickets.
+    publicationDate: "2025-03-11T00:00:00.000Z"
+    status: specified
+    functionalBlock: Production
+    owners:
+    - email: Redacted
+      name: Redacted
+    maintainers:
+    - name: Redacted
+      email: components@tmforum.org
+    SID:
+    - Resource_Domain|Resource_Trouble_ABE|Resource_Alarm_ABE|v25.0
+    eTom: []
+    functionalFramework: []
+  coreFunction:
+    exposedAPIs: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents:
+    - name: alarmCreateCommand
+      description: Create-alarm command for the alarm management agent, as an A2A message.
+      topic: oda.tmf642.command.createAlarm
+      specification:
+      - apiType: a2a
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+        version: 1.0.0
+    - name: alarmClearCommand
+      description: Clear-alarm command for the alarm management agent, as an A2A message.
+      topic: oda.tmf642.command.clearAlarm
+      specification:
+      - apiType: a2a
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+        version: 1.0.0
+    - name: serviceProblemCreateNotificationEvent
+      description: Service problem created, as an A2A message for the service problem agent.
+      topic: oda.tmf656.serviceProblemCreateNotificationEvent
+      specification:
+      - apiType: a2a
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+        version: 1.0.0
+    - name: serviceProblemStateChangeNotificationEvent
+      description: Service problem state change, as an A2A message for the service problem agent.
+      topic: oda.tmf656.serviceProblemStateChangeNotificationEvent
+      specification:
+      - apiType: a2a
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+        version: 1.0.0
+    subscribedEvents:
+    - name: alarmCreateResourceEvent
+      description: TMF642 alarm raised, from the trap receiver.
+      topic: oda.trapReceiver.event.alarmDetected
+      specification:
+      - apiType: asyncapi
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+        version: 1.0.0
+      transport: native
+      publisher: trapreceivercomponent
+    - name: alarmClearResourceEvent
+      description: TMF642 alarm cleared, from the trap receiver.
+      topic: oda.trapReceiver.event.alarmCleared
+      specification:
+      - apiType: asyncapi
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+        version: 1.0.0
+      transport: native
+      publisher: trapreceivercomponent
+    - name: serviceProblemCreateResourceEvent
+      description: Service problem created by the alarm management agent.
+      topic: oda.alarmManagement.serviceProblemCreateNotificationEvent
+      specification:
+      - apiType: asyncapi
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+        version: 1.0.0
+      transport: native
+      publisher: alarm-management-agent
+    - name: serviceProblemStateChangeResourceEvent
+      description: Service problem state change from the alarm management agent.
+      topic: oda.alarmManagement.serviceProblemStateChangeNotificationEvent
+      specification:
+      - apiType: asyncapi
+        url: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+        version: 1.0.0
+      transport: native
+      publisher: alarm-management-agent

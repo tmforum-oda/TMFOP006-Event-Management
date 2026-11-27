@@ -1,0 +1,51 @@
+apiVersion: oda.tmforum.org/v1
+kind: Component
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    oda.tmforum.org/componentName: {{ .Release.Name }}
+spec:
+  componentMetadata:
+    id: TMFC043
+    name: FaultManagement
+    version: 1.0.0
+    description: Fault Management identifies, diagnoses and resolves issues that prevent communication resources and their overlaying services from functioning correctly. It manages the currently active alarms or problem candidates and hands them to the alarm management agent.
+    publicationDate: "2025-03-11T00:00:00.000Z"
+    status: specified
+    functionalBlock: Production
+    owners:
+    - email: Redacted
+      name: Redacted
+    maintainers:
+    - name: Redacted
+      email: components@tmforum.org
+    SID:
+    - Resource_Domain|Resource_Trouble_ABE|Resource_Alarm_ABE|v25.0
+    eTom: []
+    functionalFramework: []
+  coreFunction:
+    exposedAPIs: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents:
+    {{- include "tmfc043.event" (dict "root" . "name" "alarmCreateCommand" "desc" "Create-alarm command for the alarm management agent, as an A2A message." "topic" .Values.topics.createAlarmOut "api" "a2a") | nindent 4 }}
+    {{- include "tmfc043.event" (dict "root" . "name" "alarmClearCommand" "desc" "Clear-alarm command for the alarm management agent, as an A2A message." "topic" .Values.topics.clearAlarmOut "api" "a2a") | nindent 4 }}
+    {{- include "tmfc043.event" (dict "root" . "name" "serviceProblemCreateNotificationEvent" "desc" "Service problem created, as an A2A message for the service problem agent." "topic" .Values.topics.problemCreateOut "api" "a2a") | nindent 4 }}
+    {{- include "tmfc043.event" (dict "root" . "name" "serviceProblemStateChangeNotificationEvent" "desc" "Service problem state change, as an A2A message for the service problem agent." "topic" .Values.topics.problemStateOut "api" "a2a") | nindent 4 }}
+    subscribedEvents:
+    {{- include "tmfc043.event" (dict "root" . "name" "alarmCreateResourceEvent" "desc" "TMF642 alarm raised, from the trap receiver." "topic" .Values.topics.alarmDetected "api" "asyncapi" "publisher" .Values.publishers.trapReceiver) | nindent 4 }}
+    {{- include "tmfc043.event" (dict "root" . "name" "alarmClearResourceEvent" "desc" "TMF642 alarm cleared, from the trap receiver." "topic" .Values.topics.alarmCleared "api" "asyncapi" "publisher" .Values.publishers.trapReceiver) | nindent 4 }}
+    {{- include "tmfc043.event" (dict "root" . "name" "serviceProblemCreateResourceEvent" "desc" "Service problem created by the alarm management agent." "topic" .Values.topics.problemCreateIn "api" "asyncapi" "publisher" .Values.publishers.alarmManagement) | nindent 4 }}
+    {{- include "tmfc043.event" (dict "root" . "name" "serviceProblemStateChangeResourceEvent" "desc" "Service problem state change from the alarm management agent." "topic" .Values.topics.problemStateIn "api" "asyncapi" "publisher" .Values.publishers.alarmManagement) | nindent 4 }}
+  securityFunction:
+    canvasSystemRole: canvasRole
+{{- if .Values.traceCollector.enabled }}
+  managementFunction:
+    exposedAPIs:
+      - name: trace-collector-metrics
+        apiType: openmetrics
+        implementation: {{ .Release.Name }}-trace
+        path: /{{ .Release.Name }}/trace-collector-metrics
+        port: 8080
+    dependentAPIs: []
+{{- end }}

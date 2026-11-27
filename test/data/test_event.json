@@ -1,0 +1,10 @@
+{
+  "specversion": "1.0",
+  "id": "evt-12345",
+  "source": "/tmforum/oda/tmf642-alarmmanagement",
+  "type": "org.tmforum.tmf642.alarm.create.v1",
+  "time": "2026-08-27T12:00:00Z",
+  "data": {
+    "alarm": {"alarmId": "A-1", "description": "test alarm"}
+  }
+}

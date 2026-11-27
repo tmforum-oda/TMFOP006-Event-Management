@@ -1,0 +1,88 @@
+# Default values for eventmanagement-operator.
+
+operator:
+  # Public image, built from source/eventOperator (see the chart README). Same convention as the
+  # upstream charts: image + version (+ optional prereleaseSuffix, which forces imagePullPolicy Always).
+  image: lekhamaru/eventmanagement-operator
+  version: 0.3.2
+  prereleaseSuffix:
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  # Namespace the operator itself runs in.
+  namespace: canvas
+  # Namespace(s) of ODA Components whose PublishedNotification /
+  # SubscribedNotification resources this operator watches. Rendered as
+  # `-n <namespace>` on the kopf command line.
+  componentNamespace: components
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+kafka:
+  bootstrapServers: oda-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
+  securityProtocol: PLAINTEXT
+  saslMechanism: ""
+  sslCafile: ""
+  topicPrefix: oda
+  topicPartitions: 1
+  topicReplicationFactor: 3
+  # Quoted as a string -- Helm/Go-template renders large bare integers like
+  # 604800000 in scientific notation (e.g. "6.048e+08") when piped through
+  # `quote`, which the operator can't parse back into an int.
+  topicRetentionMs: "604800000"
+  allowTopicDelete: false
+  requestTimeoutMs: 30000
+  # Name of a pre-existing Secret (same namespace) with SASL credentials for
+  # the operator's own Kafka admin principal, if the broker requires auth.
+  # Not created by this chart. Leave blank to run without one (matches a
+  # PLAINTEXT / no-auth broker).
+  existingSecretName: ""
+  # Strimzi only: create one KafkaUser per component (oda-<component>) holding that component's
+  # ACLs. Without it the Strimzi User Operator removes ACLs created through the admin API on its
+  # next reconcile. Leave disabled on a broker that is not managed by Strimzi.
+  userManagement:
+    enabled: false
+    namespace: kafka          # namespace of the Kafka cluster
+    clusterName: oda-kafka    # value of the strimzi.io/cluster label
+    apiVersion: kafka.strimzi.io/v1
+
+adapter:
+  # In "adapter" transport mode the operator deploys one small notification
+  # adapter Deployment per SubscribedNotification (Kafka -> REST). The adapter
+  # is a separate image, built from source/notificationAdapter.
+  image: lekhamaru/eventmanagement-notification-adapter
+  version: 0.2.0
+  imagePullPolicy: IfNotPresent
+  entrypoint: /src/notification_adapter.py
+  port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  # Name of a pre-existing Secret the adapter Deployments mount for
+  # downstream callback auth, if any. Optional.
+  existingCredentialsSecret: ""
+
+kopf:
+  peeringName: eventmanagement
+  peeringPriority: 120
+  maxWorkers: 20
+
+reconcileIntervalSeconds: 300
+logging: "20"
+
+schemaRegistry:
+  url: ""
+  verifySsl: true
+
+global:
+  # Optional private registry prefix (with trailing slash) and pull secrets, as in the upstream charts.
+  # registry: myregistry.example.com/
+  imagePullSecrets: []

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: tmfc043
+description: TMFC043 Fault Management ODA Component - consumes asyncapi events and republishes them as A2A messages
+type: application
+version: 0.1.0
+# version: 0.1.0 - initial: Component, runtime Deployment/Service, Strimzi KafkaUser
+appVersion: "0.1.0"

@@ -1,0 +1,80 @@
+# Image: image + version (+ optional prereleaseSuffix, which forces imagePullPolicy Always), as in the upstream charts.
+image: lekhamaru/tmfc043
+version: 0.2.0
+prereleaseSuffix:
+imagePullPolicy: IfNotPresent
+replicas: 1
+loglevel: "20"
+
+# Input tracing: one span per Kafka record, written as log lines for the trace collector.
+# Not sent over OTLP. Set enabled false to turn it off.
+tracing:
+  enabled: true
+  samplingRatio: "1.0"
+  environment: canvas-demo
+
+kafka:
+  # Port 9095 is the broker's OAuth listener (Keycloak tokens).
+  bootstrapServers: oda-kafka-kafka-bootstrap.kafka.svc.cluster.local:9095
+  securityProtocol: SASL_SSL
+  # Strimzi: namespace and name of the Kafka cluster, and the KafkaUser API version it serves.
+  namespace: kafka
+  clusterName: oda-kafka
+  userApiVersion: kafka.strimzi.io/v1
+  # KafkaUser (principal oda-<component>) holding the component's ACLs. Strimzi's User Operator removes
+  # ACLs that have no KafkaUser. The Event Management Operator creates it when its chart value
+  # kafka.userManagement.enabled is true, so leave this false then; set true only without that.
+  createKafkaUser: false
+
+# CA certificates the pod trusts. Provide the PEM text, or leave empty and create the two Secrets
+# (key ca.crt) yourself with the names below.
+tls:
+  kafkaCaSecret: tmfc043-kafka-ca
+  keycloakCaSecret: tmfc043-keycloak-ca
+  kafkaCa: ""
+  keycloakCa: ""
+
+keycloak:
+  tokenUrl: https://canvas-keycloak.canvas.svc.cluster.local:8443/auth/realms/odari/protocol/openid-connect/token
+  # Secret the identity operator creates once the Component is Complete (keys client_id, client_secret).
+  clientSecret: tmfc043-secret
+
+# Address of the NetoAI digital twin that the TMF642 / TMF656 proxy forwards to. Empty = the proxy answers 503.
+twin:
+  baseUrl: ""
+  timeoutSeconds: 20
+
+# Topics: defaults are the create and clear flows of the delivery diagrams.
+topics:
+  alarmDetected: oda.trapReceiver.event.alarmDetected
+  alarmCleared: oda.trapReceiver.event.alarmCleared
+  problemCreateIn: oda.alarmManagement.serviceProblemCreateNotificationEvent
+  problemStateIn: oda.alarmManagement.serviceProblemStateChangeNotificationEvent
+  createAlarmOut: oda.tmf642.command.createAlarm
+  clearAlarmOut: oda.tmf642.command.clearAlarm
+  problemCreateOut: oda.tmf656.serviceProblemCreateNotificationEvent
+  problemStateOut: oda.tmf656.serviceProblemStateChangeNotificationEvent
+
+# Name of the component that publishes the trap events and the one that publishes the service problems.
+publishers:
+  trapReceiver: trapreceivercomponent
+  alarmManagement: alarm-management-agent
+
+specUrl: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+
+global:
+  # registry: myregistry.example.com/
+  imagePullSecrets: []
+
+# Trace collector for this component (see the Tracing section of demo-app/tmfc043/README.md).
+# It reads this component's pod logs and exports reconstructed trace events to Langfuse. Not an OTLP receiver.
+traceCollector:
+  enabled: true
+  image: akumartmf/pf-netoai-trace-collector:v0.1.0   # same version the fault-management agent collector runs
+  pullPolicy: IfNotPresent
+  exportEnabled: true
+  existingSecret: demo-agent-langfuse-otel
+  authHeaderKey: authorization
+  langfuseEndpoint: http://langfuse-web.langfuse.svc.cluster.local:3000/api/public/otel/v1/traces
+  logSinceSeconds: 60
+  logWatchRestartSeconds: 10

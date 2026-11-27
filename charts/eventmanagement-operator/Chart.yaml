@@ -1,0 +1,23 @@
+apiVersion: v2
+name: eventmanagement-operator
+description: >-
+  TMFOP006 Event Management Operator. Watches oda.tmforum.org
+  PublishedNotification / SubscribedNotification custom resources and
+  reconciles them into real Kafka topics, producer/consumer ACLs, and
+  (in adapter transport mode) notification-adapter Deployments.
+
+type: application
+
+# Chart version -- bump this each time the chart/templates change.
+version: 1.2.0
+# version: 1.2.0 - optional per-component Strimzi KafkaUser (kafka.userManagement) so ACLs persist.
+# version: 1.1.1 - status.apiType now works with kopf Spec objects (Mapping, not dict).
+# version: 1.1.0 - public Docker Hub images (no ECR); the adapter has its own image;
+#                  RBAC lets the operator delete adapter Services.
+# version: 1.0.0 - baseline: packages the existing plain manifests
+#                  (manifests/deployment.yaml, configmap.yaml, rbac.yaml) as
+#                  a proper Helm chart. No behavior change from what is
+#                  already running in the canvas namespace.
+
+# Version of the operator image this chart deploys.
+appVersion: "0.3.2"
